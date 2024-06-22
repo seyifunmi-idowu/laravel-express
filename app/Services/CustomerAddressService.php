@@ -66,9 +66,9 @@ class CustomerAddressService
         return true;
     }
 
-    public static function updateCustomerAddress($request, $addressId)
+    public static function updateCustomerAddress($user, $addressId, $request)
     {
-        $customer = Customer::where('user_id', $request->user()->id)->first();
+        $customer = Customer::where('user_id', $user->id)->first();
         if (!$customer) {
             throw new CustomAPIException('Customer not found', 404);
         }
@@ -77,7 +77,7 @@ class CustomerAddressService
         if (!$address) {
             throw new CustomAPIException('Address not found', 404);
         }
-        print_r( $request->formatted_address);
+    
         $address->formatted_address = $request->formatted_address ?? $address->formatted_address;
         $address->direction = $request->direction ?? $address->direction;
         $address->landmark = $request->landmark ?? $address->landmark;

@@ -3,33 +3,13 @@
 namespace App\Services;
 
 // use Illuminate\Support\Facades\Mail;
-use SendGrid\Mail\Mail as SendGridMail;
 use SendGrid\Mail\From;
 use SendGrid\Mail\To;
 use SendGrid\Mail\Subject;
 use SendGrid\Mail\Content;
 
-use SendGrid\Mail\Cc;
-use SendGrid\Mail\Bcc;
 use SendGrid\Mail\Mail;
 use SendGrid\Mail\Personalization;
-use SendGrid\Mail\Header;
-use SendGrid\Mail\CustomArg;
-use SendGrid\Mail\SendAt;
-use SendGrid\Mail\Attachment;
-use SendGrid\Mail\Asm;
-use SendGrid\Mail\MailSettings;
-use SendGrid\Mail\BccSettings;
-use SendGrid\Mail\SandBoxMode;
-use SendGrid\Mail\BypassListManagement;
-use SendGrid\Mail\Footer;
-use SendGrid\Mail\SpamCheck;
-use SendGrid\Mail\TrackingSettings;
-use SendGrid\Mail\ClickTracking;
-use SendGrid\Mail\OpenTracking;
-use SendGrid\Mail\SubscriptionTracking;
-use SendGrid\Mail\Ganalytics;
-use SendGrid\Mail\ReplyTo;
 
 use SendGrid;
 use Exception;
