@@ -21,3 +21,10 @@ Route::group(['middleware' => ['auth:jwt']], function () {
     Route::post('register/complete', [CustomerController::class, 'completeBusinessCustomerSignup']);
     Route::post('update-profile', [CustomerController::class, 'updateProfile']);
 });
+
+Route::middleware(['auth:api'])->group(function () {
+    Route::post('saved-address', [CustomerController::class, 'createAddress']);
+    Route::get('saved-address', [CustomerController::class, 'getAddress']);
+    Route::delete('saved-address/{id}', [CustomerController::class, 'destroyAddress']);
+    Route::patch('saved-address/{id}', [CustomerController::class, 'updateAddress']);
+});

@@ -9,6 +9,7 @@ use App\Services\CustomerService;
 use App\Services\AuthService;
 use App\Services\UserService;
 use App\Services\MapService;
+use App\Services\CustomerAddressService;
 use Illuminate\Http\JsonResponse;
 use App\Http\Requests\RegisterCustomerRequest;
 use Illuminate\Support\Facades\Log;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\RetrieveCustomerResource;
 use App\Http\Resources\FavouriteRiderResource;
 use App\Http\Resources\UserProfileResource;
+use App\Http\Resources\AddressResource;
 
 class CustomerController extends Controller
 {
@@ -247,7 +249,57 @@ class CustomerController extends Controller
             $response = MapService::searchAddress("$latitude,$longitude");
         }
         return ApiResponse::responseSuccess($response, 'Address information');
-    } 
+    }
+
+    public function createAddress(Request $request)
+    {
+        try{
+            $request->validate([
+                'latitude' => 'required|numeric',
+                'longitude' => 'required|numeric',
+                'direction' => 'nullable|string',
+                'landmark' => 'nullable|string',
+                'label' => 'nullable|string',    
+            ]);
+        } catch (ValidationException $e) {
+            $errors =$e->errors();
+            $message  = collect($errors)->unique()->first();
+            return ApiResponse::responseValidateError($errors,  $message[0]);
+        }
+        $response = CustomerAddressService::createCustomerAddress($request->user(), $request);
+        return ApiResponse::responseSuccess(new AddressResource($response), 'Address created successfully');
+    }
+
+    public function getAddress(Request $request)
+    {
+        $response = CustomerAddressService::getCustomerAddress($request->user());
+        return ApiResponse::responseSuccess(AddressResource::collection($response), 'Customer saved addresses');
+    }
+
+    public function destroyAddress(Request $request, $id)
+    {
+        CustomerAddressService::deleteCustomerAddress($request->user(), $id);
+        return ApiResponse::responseSuccess([], 'Address deleted successfully');
+    }
+
+    public function updateAddress(Request $request, $id)
+    {
+        try{
+            $request->validate([
+                'direction' => 'nullable|string',
+                'landmark' => 'nullable|string',
+                'label' => 'nullable|string',    
+                'formatted_address' => 'nullable|string',    
+            ]);
+        } catch (ValidationException $e) {
+            $errors =$e->errors();
+            $message  = collect($errors)->unique()->first();
+            return ApiResponse::responseValidateError($errors, $message[0]);
+        }
+        $response = CustomerAddressService::updateCustomerAddress($request->user(), $id, $request);
+        return ApiResponse::responseSuccess(new AddressResource($response), 'Address updated successfully');
+    }
+
 
 }
 
