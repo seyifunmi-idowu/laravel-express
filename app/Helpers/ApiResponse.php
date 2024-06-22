@@ -71,7 +71,7 @@ class ApiResponse
         return self::respond($data, 'error', $message, $statusCode, $options);
     }
 
-    public static function responseUnauthorized(string $message = 'Unauthorized', array $options = []): JsonResponse
+    public static function responseUnauthorized(string $message = 'Token is invalid or expired', array $options = []): JsonResponse
     {
         return self::responseError([], $message, 401, $options);
     }

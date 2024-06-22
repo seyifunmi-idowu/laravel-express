@@ -133,6 +133,74 @@ class NotificationService
         }
     }
 
+    public static function sendPush($subscription_list, $title, $message): array
+    {
+        $appId = config('constants.ONE_SIGNAL_APP_ID');
+        $secretKey = config('constants.ONE_SIGNAL_KEY');
+        $client = new Client();
+        $response = $client->post('https://onesignal.com/api/v1/notifications', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $secretKey,
+                'Content-Type' => 'application/json',
+            ],
+            'json' => [
+                'app_id' => $appId,
+                'include_subscription_ids' => $subscription_list,
+                'contents' => ['en'=> $message],
+                'headings' => ['en'=> $title],
+            ],
+        ]);
+
+        return json_decode($response->getBody(), true);
+    }
+
+    public function sendPushNotification(User $user, string $title, string $message, bool $addToNotification = true)
+    {
+        $userNotification = $this->getUserOneSignal($user)->first();
+        
+        if ($userNotification) {
+            $oneSignalId = $userNotification->one_signal_id;
+            $formattedMessage = strlen($message) > 50 ? substr($message, 0, 100) . "..." : $message;
+            $this->sendPush([$oneSignalId], $title, $formattedMessage);
+        }
+
+        if ($addToNotification) {
+            $this->addUserNotification($user, $title, $message);
+        }
+    }
+
+    public function sendCollectivePushNotification($users, string $title, string $message, bool $addToNotification = true)
+    {
+        $subscriptionList = [];
+        
+        foreach ($users as $user) {
+            $userNotification = $this->getUserOneSignal($user)->first();
+            if ($userNotification) {
+                $subscriptionList[] = $userNotification->one_signal_id;
+            }
+        }
+
+        $formattedMessage = strlen($message) > 50 ? substr($message, 0, 100) . "..." : $message;
+        $this->sendPush($subscriptionList, $title, $formattedMessage);
+
+        if ($addToNotification) {
+            foreach ($users as $user) {
+                $this->addUserNotification($user, $title, $message);
+            }
+        }
+    }
+
+    private static function addUserNotification(User $user, string $title, string $message)
+    {
+        $notification = new Notification();
+        $notification->user_id = $user->id;
+        $notification->title = $title;
+        $notification->message = $message;
+        $notification->opened = false;
+        $notification->save();
+    }
+
+
     public function getNotifications($user): Collection
     {
         return Notification::where('user_id', $user->id)->orderBy('created_at', 'desc')->get();

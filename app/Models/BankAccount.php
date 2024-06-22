@@ -27,6 +27,19 @@ class BankAccount extends Model
         'save_account',
     ];
 
+    protected $hidden = [
+        'user_id',
+        'recipient_code',
+        'meta',
+        'save_account',
+        'updated_at',
+        'state',
+        'deleted_at',
+        'created_by_id',
+        'deleted_by_id',
+        'updated_by_id',
+    ];
+
     protected $casts = [
         'id' => 'string',
         'meta' => 'array',

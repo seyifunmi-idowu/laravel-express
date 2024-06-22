@@ -33,6 +33,23 @@ class Transaction extends Model
         'pssp_meta_data'
     ];
 
+    protected $hidden = [
+        'user_id',
+        'deleted_at',
+        'state',
+        'pssp',
+        'payment_channel',
+        'wallet_id',
+        'object_id',
+        'object_class',
+        'payment_category',
+        'pssp_meta_data',
+        'updated_at',
+        'created_by_id',
+        'deleted_by_id',
+        'updated_by_id',
+    ];
+
     protected $casts = [
         'pssp_meta_data' => 'array',
     ];

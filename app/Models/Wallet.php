@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Helpers\StaticFunction;
+use App\Services\NotificationService;
 
 
 class Wallet extends Model
@@ -39,5 +40,39 @@ class Wallet extends Model
             }
         });
     }
+
+    public function deposit($amount)
+    {
+        $this->balance += $amount;
+        $this->save();
+
+        $title = "Wallet credited";
+        $message = "₦ " . number_format($amount, 2) . " has been credited into your wallet.";
+        $notificationService = new NotificationService();
+        $notificationService->sendPushNotification($this->user, $title, $message);
+    }
+
+    public function withdraw($amount, $deductNegative = false)
+    {
+        if ($deductNegative || $this->balance >= $amount) {
+            $this->balance -= $amount;
+            $this->save();
+
+            $title = "Wallet withdrawal";
+            $message = "₦ " . number_format($amount, 2) . " has been debited from your wallet.";
+            $notificationService = new NotificationService();
+            $notificationService->sendPushNotification($this->user, $title, $message);
+    
+            if ($this->balance < 0) {
+                $title = "Low balance";
+                $message = "Your wallet has hit rock bottom with ₦ -" . number_format(abs($this->balance), 2) . ". Kindly fund wallet.";
+                $notificationService = new NotificationService();
+                $notificationService->sendPushNotification($this->user, $title, $message);
+            }
+        } else {
+            throw new \Exception("Insufficient balance for withdrawal.");
+        }
+    }
+
 
 }
