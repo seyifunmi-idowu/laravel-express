@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Services\CustomerService;
 use App\Services\AuthService;
 use App\Services\UserService;
+use App\Services\MapService;
 use Illuminate\Http\JsonResponse;
 use App\Http\Requests\RegisterCustomerRequest;
 use Illuminate\Support\Facades\Log;
@@ -215,6 +216,38 @@ class CustomerController extends Controller
         $user = $this->customerService->updateProfile($request, $request->user());
         return ApiResponse::responseSuccess(new UserProfileResource($user), 'Customer updated successful');
     }
+    
+    public function addressInfo(Request $request)
+    {
+        try{
+            $request->validate([
+                'address' => 'nullable|string',
+                'latitude' => 'nullable|string',
+                'longitude' => 'nullable|string',
+            ]);
+        } catch (ValidationException $e) {
+            $errors =$e->errors();
+            $message  = collect($errors)->unique()->first();
+            return ApiResponse::responseValidateError($errors,  $message[0]);
+        }
+        $address = $request->address ?? null;
+        $latitude = $request->latitude ?? null;
+        $longitude = $request->longitude ?? null;
+
+        if (!(
+            ($address && !$latitude && !$longitude) ||
+            ($latitude && $longitude && !$address)
+        )) {
+            throw new CustomAPIException("Provide either 'address' or both 'latitude' and 'longitude', but not all three.");
+        }
+        
+        if (!empty($address)) {
+            $response = MapService::searchAddress($address);
+        } else {
+            $response = MapService::searchAddress("$latitude,$longitude");
+        }
+        return ApiResponse::responseSuccess($response, 'Address information');
+    } 
 
 }
 

@@ -10,17 +10,17 @@ class GoogleMapsService
 
     protected static function getApiKey()
     {
-        return config('GOOGLE_API_KEY');
+        return config('constants.GOOGLE_API_KEY');
     }
 
     protected static function getSearchLocation()
     {
-        return config('GOOGLE_SEARCH_LOCATION');
+        return config('constants.GOOGLE_SEARCH_LOCATION');
     }
 
     protected static function getSearchRadius()
     {
-        return config('GOOGLE_SEARCH_RADIUS');
+        return config('constants.GOOGLE_SEARCH_RADIUS');
     }
 
     protected static function makeRequest($endpoint, $params)
@@ -31,7 +31,6 @@ class GoogleMapsService
         if ($response->failed()) {
             throw new \Exception('Google Maps API request failed');
         }
-
         return $response->json();
     }
 
@@ -55,9 +54,8 @@ class GoogleMapsService
         ]);
     }
 
-    public static function searchAddress($query)
+    public static function searchAddress($encodedQuery)
     {
-        $encodedQuery = urlencode($query);
         return self::makeRequest('place/textsearch/json', [
             'query' => $encodedQuery,
             'location' => self::getSearchLocation(),
