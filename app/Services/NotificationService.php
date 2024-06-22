@@ -16,8 +16,11 @@ use Exception;
 use Log;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Models\Notification;
 use Illuminate\Database\Eloquent\Collection;
 use GuzzleHttp\Client;
+use App\Exceptions\CustomAPIException;
+use Carbon\Carbon;
 
 class NotificationService
 {
@@ -129,29 +132,33 @@ class NotificationService
             return false;
         }
     }
-}
 
-
-
-class EmailManager
-{
-    protected $senderEmail;
-    protected $senderName;
-    protected $subject;
-    protected $context;
-    protected $template;
-    protected $apiKey;
-    protected $env;
-
-    public function __construct($subject, $context, $template = null)
+    public function getNotifications($user): Collection
     {
-        $this->senderEmail = env('SENDGRID_SENDER_EMAIL');
-        $this->senderName = env('SENDGRID_SENDER_NAME');
-        $this->apiKey = env('SENDGRID_API_KEY');
-        $this->env = env('APP_ENV', 'local');
-        $this->subject = $this->env === 'production' ? $subject : "{$subject} - " . strtoupper($this->env);
-        $this->context = $context;
-        $this->template = $template ?: 'emails.general'; // default template
+        return Notification::where('user_id', $user->id)->orderBy('created_at', 'desc')->get();
     }
 
+    public static function openedNotifications($notificationId, $user)
+    {
+        $notification = Notification::where('id', $notificationId)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (is_null($notification)) {
+            throw new CustomAPIException('Notification not found', 404);
+        }
+
+        $notification->opened = true;
+        $metaData = $notification->meta_data ?? [];
+        $notification->meta_data = array_merge(
+            ['date' => Carbon::now()->format('Y-m-d H:i:s')],
+            $metaData
+        );
+        $notification->save();
+
+        return true;
+    }
+
+
 }
+

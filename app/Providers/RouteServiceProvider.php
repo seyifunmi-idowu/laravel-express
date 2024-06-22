@@ -51,7 +51,7 @@ class RouteServiceProvider extends ServiceProvider
         // $this->mapApiRoute('/api/card.php', '/api/v1/card');
         $this->mapApiRoute('/api/customer.php', '/api/v1/customer');
         $this->mapApiRoute('/api/maps.php', '/api/v1/maps');
-        // $this->mapApiRoute('/api/notification.php', '/api/v1/notification');
+        $this->mapApiRoute('/api/notification.php', '/api/v1/notification');
         // $this->mapApiRoute('/api/order.php', '/api/v1/order');
         // $this->mapApiRoute('/api/paystack.php', '/api/v1/paystack');
         // $this->mapApiRoute('/api/rider.php', '/api/v1/rider');
