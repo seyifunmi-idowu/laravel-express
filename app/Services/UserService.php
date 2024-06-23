@@ -150,4 +150,28 @@ class UserService
         return $user;
     }
 
+    public function changePassword($request)
+    {
+        $old_password = $request->old_password;
+        $password = $request->password;
+        $user = $request->user();
+        $credentials = ['email' => $user->email, 'password' => $old_password];
+        if (!Auth::attempt($credentials)) {
+            throw new CustomAPIException('old password is not correct', 401);
+        }
+        $user->password = Hash::make($password);
+        $user->save();
+        return true;
+    }
+
+    public function customizeReferralCode($user, $referral_code)
+    {
+        $referredCodeUser = User::where('referral_code', $referral_code)->first();
+        if ($referredCodeUser) {
+            throw new CustomAPIException("Referral code taken", 409);
+        }
+        $user->referral_code = $referral_code;
+        $user->save();
+        return $user;
+    }
 }
