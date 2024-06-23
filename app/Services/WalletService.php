@@ -311,7 +311,6 @@ class WalletService
         if ($response['status'] && $response['data']['status'] == 'success') {
             $wallet = $user->wallet;
             $reference = $response['data']['reference'];
-            print_r($amount);
             Transaction::create([
                 'transaction_type' => 'CREDIT',
                 'transaction_status' => 'SUCCESS',
