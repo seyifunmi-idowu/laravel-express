@@ -141,6 +141,23 @@ class WalletController extends Controller
         return ApiResponse::responseSuccess($response, 'Card transaction initiated');
     }
 
+    public function debitCard(Request $request): JsonResponse
+    {
+        try{
+            $request->validate([
+                'card_id' => 'required',
+                'amount' => 'required',
+            ]);
+        } catch (ValidationException $e) {
+            $errors =$e->errors();
+            $message  = collect($errors)->unique()->first();
+            return ApiResponse::responseValidateError($errors,  $message[0]);
+        }
+        
+        $response = $this->walletService->debitCard($request->user(), $request->card_id, $request->amount);
+        return ApiResponse::responseSuccess($response, 'Card transaction initiated');
+    }
+
     public function paystackCallback(Request $request): JsonResponse
     {
         $response = $this->walletService->verifyCardTransaction($request->query());

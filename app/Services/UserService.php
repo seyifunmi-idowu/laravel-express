@@ -174,4 +174,19 @@ class UserService
         $user->save();
         return $user;
     }
+
+    public function verifyPasswordReset($request)
+    {
+        $email= $request->email;
+        $otp= $request->otp;
+        $password= $request->password;
+
+        $this->authService->verifyEmailVerification($email, $otp);
+
+        $user = $this->getUser("", $email);
+        $user->password = Hash::make($password);
+        $user->save();
+
+        return true;
+    }
 }

@@ -105,7 +105,7 @@ class AuthService
         return true;
     }
 
-    public function initiateEmailVerification($email)
+    public function initiateEmailVerification($email, $subject="Verify Email")
     {
         $user = User::where('email', $email)->first();
         if (!$user) {
@@ -123,15 +123,15 @@ class AuthService
 
         $existingVerification = OTPVerification::where('email', $email)->first();
 
-        // if ($existingVerification && $existingVerification->trials >= config('constants.email_verification_max_trials', 5)) {
-        //     throw new CustomAPIException(
-        //         "Oops you've reached the maximum request for this operation. Retry in 24hrs time.",
-        //         429
-        //     );
-        // }
+        if ($existingVerification && $existingVerification->trials >= config('constants.email_verification_max_trials', 5)) {
+            throw new CustomAPIException(
+                "Oops you've reached the maximum request for this operation. Retry in 24hrs time.",
+                429
+            );
+        }
 
         $otp = $this->generateOtp();
-        $expirationTime = Carbon::now()->addSeconds(config('constants.email_verification_ttl', 300));
+        $expirationTime = Carbon::now()->addSeconds(config('constants.email_verification_ttl', 1800));
 
         DB::transaction(function () use ($email, $otp, $expirationTime, $existingVerification) {
             if ($existingVerification) {
@@ -156,7 +156,7 @@ class AuthService
         ];
         NotificationService::sendEmailMessage(
             [$user->email], 
-            "Verify Email", 
+            $subject, 
             $context,
             "emails.otp_template"
         );

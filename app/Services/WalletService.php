@@ -300,6 +300,39 @@ class WalletService
         return true;
     }
 
+    public function debitCard($user, $cardId, $amount)
+    {
+        $userCard = Card::where('user_id', $user->id)->where('id', $cardId)->first();
+        if (!$userCard) {
+            throw new CustomAPIException("Card not found", 404);
+        }
+
+        $response = $this->paystackService->chargeCard($user->email, $amount, $userCard->card_auth);
+        if ($response['status'] && $response['data']['status'] == 'success') {
+            $wallet = $user->wallet;
+            $reference = $response['data']['reference'];
+            print_r($amount);
+            Transaction::create([
+                'transaction_type' => 'CREDIT',
+                'transaction_status' => 'SUCCESS',
+                'amount' => $amount,
+                'user_id' => $user->id,
+                'reference' => $reference,
+                'pssp' => 'PAYSTACK',
+                'payment_category' => 'FUND_WALLET',
+                'wallet_id' => $wallet->id,
+                'currency' => "₦",
+                'pssp_meta_data' => $response['data'],
+            ]);
+
+            $wallet->deposit($amount);
+
+            return true;
+        }
+
+        throw new CustomAPIException("Unable to debit card", 400);
+    }
+
 
 
 }
