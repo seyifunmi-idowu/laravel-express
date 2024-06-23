@@ -119,4 +119,49 @@ class WalletController extends Controller
         return Response::json($formattedTransactions);
     }
 
+    public function getUserCards(Request $request): JsonResponse
+    {
+        $response = $this->walletService->getUserCards($request->user());
+        return ApiResponse::responseSuccess($response, 'User cards');
+    }
+
+    public function initiateCardTransaction(Request $request): JsonResponse
+    {
+        try{
+            $request->validate([
+                'amount' => 'required',
+            ]);
+        } catch (ValidationException $e) {
+            $errors =$e->errors();
+            $message  = collect($errors)->unique()->first();
+            return ApiResponse::responseValidateError($errors,  $message[0]);
+        }
+        
+        $response = $this->walletService->initiateCardTransaction($request->user(), $request->amount);
+        return ApiResponse::responseSuccess($response, 'Card transaction initiated');
+    }
+
+    public function paystackCallback(Request $request): JsonResponse
+    {
+        $response = $this->walletService->verifyCardTransaction($request->query());
+        return ApiResponse::responseSuccess($response, 'Transaction successful');
+    }
+
+    public function paystackWebhook(Request $request)
+    {
+        $requestData = $request->all();
+        $event = $requestData['event'] ?? '';
+
+        if ($event === 'charge.success') {
+            $data = ['trxref' => $requestData['data']['reference'] ?? ''];
+
+            try {
+                $this->walletService->verifyCardTransaction($data);
+            } catch (CustomAPIException $e) {
+                return ApiResponse::responseSuccess([], $e->getMessage());
+            }
+        }
+
+        return ApiResponse::responseSuccess([], 'Webhook successful');
+    }
 }

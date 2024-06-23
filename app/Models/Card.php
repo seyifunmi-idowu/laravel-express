@@ -31,6 +31,23 @@ class Card extends Model
         'customer_code',
     ];
 
+    protected $hidden = [
+        'user_id',
+        'deleted_at',
+        'state',
+        'last_name',
+        'first_name',
+        'card_auth',
+        'reusable',
+        'customer_code',
+        'updated_at',
+        'created_by_id',
+        'deleted_by_id',
+        'updated_by_id',
+        'created_at',
+    ];
+
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');

@@ -6,6 +6,7 @@ use App\Models\Wallet;
 use App\Models\User;
 use App\Models\BankAccount;
 use App\Models\Transaction;
+use App\Models\Card;
 use App\Helpers\Validator;
 use Carbon\Carbon;
 use App\Exceptions\CustomAPIException;
@@ -190,5 +191,115 @@ class WalletService
         ];
         return $response;
     }
+
+    public function getUserCards($user, array $filters = [])
+    {
+        return Card::where('user_id', $user->id)->where($filters)->get();
+    }
+
+    public function createUserCard($user, array $attributes)
+    {
+        $attributes['user_id'] = $user->id;
+        return Card::create($attributes);
+    }
+
+    public function initiateCardTransaction($user, $amount = 100)
+    {
+        $baseUrl = config('constants.BASE_URL');
+        $callbackUrl = "{$baseUrl}api/v1/paystack/paystack/callback";
+
+        $transaction = Transaction::where([
+            'user_id' => $user->id,
+            'amount' => $amount,
+            'transaction_type' => 'CREDIT',
+            'transaction_status' => 'PENDING',
+            'pssp' => 'PAYSTACK',
+        ])->first();
+
+        if ($transaction) {
+            $authorizationUrl = $transaction->pssp_meta_data['authorization_url'];
+            return ['url' => $authorizationUrl];
+        }
+
+        $paystackResponse = $this->paystackService->initializePayment($user->email, $amount, "NGN", $callbackUrl);
+        $authorizationUrl = $paystackResponse['data']['authorization_url'];
+        $reference = $paystackResponse['data']['reference'];
+
+        $transactionData = [
+            'transaction_type' => 'CREDIT',
+            'transaction_status' => 'PENDING',
+            'amount' => $amount,
+            'user_id' => $user->id,
+            'reference' => $reference,
+            'pssp' => 'PAYSTACK',
+            'payment_category' => 'FUND_WALLET',
+            'pssp_meta_data' => $paystackResponse['data'],
+            'currency' => "₦",
+        ];
+
+        Transaction::create($transactionData);
+
+        return ['url' => $authorizationUrl];
+    }
+
+    public function verifyCardTransaction(array $data)
+    {
+        $reference = $data['trxref'] ?? '';
+        $transaction = Transaction::where('reference', $reference)->first();
+
+        if (!$transaction) {
+            throw new CustomAPIException('Transaction not found.', 404);
+        }
+
+        if ($transaction->transaction_status === 'SUCCESS') {
+            throw new CustomAPIException('Transaction already verified.', 400);
+        }
+
+        $response = $this->paystackService->verifyTransaction($reference);
+
+        if ($response && $response['data']['status'] === 'success') {
+            $user = $transaction->user;
+            $wallet = $user->wallet;
+            $responseData = $response['data'];
+            $amount = $responseData['amount'] / 100;
+
+            $transaction->transaction_status = 'SUCCESS';
+            $transaction->wallet_id = $wallet->id;
+            $transaction->save();
+
+            $wallet->deposit($amount);
+
+            if ($responseData['channel'] === 'card') {
+                $card = Card::where('user_id', $user->id)
+                    ->where('last_4', $responseData['authorization']['last4'])
+                    ->where('exp_month', $responseData['authorization']['exp_month'])
+                    ->where('exp_year', $responseData['authorization']['exp_year'])
+                    ->first();
+
+                if (!$card) {
+                    Card::create($user, [
+                        'card_type' => $responseData['authorization']['card_type'],
+                        'card_auth' => $responseData['authorization']['authorization_code'],
+                        'last_4' => $responseData['authorization']['last4'],
+                        'exp_month' => $responseData['authorization']['exp_month'],
+                        'exp_year' => $responseData['authorization']['exp_year'],
+                        'country_code' => $responseData['authorization']['country_code'],
+                        'brand' => $responseData['authorization']['brand'],
+                        'reusable' => $responseData['authorization']['reusable'],
+                        'first_name' => $responseData['customer']['first_name'],
+                        'last_name' => $responseData['customer']['last_name'],
+                        'customer_code' => $responseData['customer']['customer_code'],
+                    ]);
+                }
+            }
+        } elseif ($response && $response['data']['status'] === 'failed') {
+            $transaction->transaction_status = 'FAILED';
+            $transaction->save();
+        }
+
+        return true;
+    }
+
+
 
 }
