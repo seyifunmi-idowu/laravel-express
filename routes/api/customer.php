@@ -22,7 +22,7 @@ Route::group(['middleware' => ['auth:jwt']], function () {
     Route::post('update-profile', [CustomerController::class, 'updateProfile']);
 });
 
-Route::middleware(['auth:api'])->group(function () {
+Route::middleware(['auth:jwt'])->group(function () {
     Route::post('saved-address', [CustomerController::class, 'createAddress']);
     Route::get('saved-address', [CustomerController::class, 'getAddress']);
     Route::delete('saved-address/{id}', [CustomerController::class, 'destroyAddress']);

@@ -1,5 +1,14 @@
 <?php
 
+
+$adminEmailsString = env('ADMIN_EMAILS', '');
+$adminEmailsArray = explode(',', $adminEmailsString);
+$adminEmailsArray = array_map('trim', $adminEmailsArray);
+
+$paystackWhitelistedIp = env('PAYSTACK_WHITELISTED_IP', '');
+$paystackWhitelistedIpsArray = explode(',', $paystackWhitelistedIp);
+$paystackWhitelistedIpsArray = array_map('trim', $paystackWhitelistedIpsArray);
+
 return [
     'ENVIRONMENT' => env('ENVIRONMENT', ''),
     'SECRET_KEY' => env('SECRET_KEY', ''),
@@ -22,7 +31,7 @@ return [
     'THROTTLE_PERIOD' => env('THROTTLE_PERIOD', ''),
     'BASE_URL' => env('BASE_URL', ''),
     'PAYSTACK_SECRET_KEY' => env('PAYSTACK_SECRET_KEY', ''),
-    'PAYSTACK_WHITELISTED_IP' => env('PAYSTACK_WHITELISTED_IP', ''),
+    'PAYSTACK_WHITELISTED_IP' => $paystackWhitelistedIpsArray,
     'ENABLED_IP_LOOKUP' => env('ENABLED_IP_LOOKUP', ''),
     'USE_S3' => env('USE_S3', ''),
     'GOOGLE_API_KEY' => env('GOOGLE_API_KEY', ''),
@@ -35,5 +44,5 @@ return [
     'TERMII_SECRET_KEY' => env('TERMII_SECRET_KEY', ''),
     'TERMII_SMS_FROM' => env('TERMII_SMS_FROM', ''),
     'ALLOW_SERVER_SENT_EVENTS' => env('ALLOW_SERVER_SENT_EVENTS', ''),
-
+    'ADMIN_EMAILS' => $adminEmailsArray,
 ];

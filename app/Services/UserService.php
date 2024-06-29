@@ -11,6 +11,7 @@ use App\Helpers\PasswordManager;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
+
 class UserService
 {
     protected $walletService;

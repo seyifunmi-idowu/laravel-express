@@ -8,7 +8,7 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 
 use App\Helpers\Validator as FieldValidators;
 
-class RegisterCustomerRequest extends FormRequest
+class RegisterRiderRequest extends FormRequest
 {
     public function authorize()
     {
@@ -26,19 +26,15 @@ class RegisterCustomerRequest extends FormRequest
                 'min:10',
                 'max:15',
                 'unique:user,phone_number'
-                // Add custom phone number validation rule if needed
             ],
             'password' => ['required', 'string', function ($attribute, $value, $fail) {
                 FieldValidators::validatePassword($attribute, $value, $fail);
             }],
             'verify_password' => 'required|string',
-            'receive_email_promotions' => 'nullable|boolean',
-            'customer_type' => 'required|in:INDIVIDUAL,BUSINESS',
+            'address' => 'nullable|string',
+            'receive_email_promotions' => 'boolean',
             'one_signal_id' => 'nullable|string',
-            'business_name' => 'nullable|string',
-            'business_address' => 'nullable|string',
-            'business_category' => 'nullable|string',
-            'delivery_volume' => 'nullable|integer',
+            'city' => 'nullable|string',
             'referral_code' => 'nullable|string',
         ];
     }
@@ -52,8 +48,7 @@ class RegisterCustomerRequest extends FormRequest
             'email.unique' => 'Email is already taken',
             'phone_number.required' => 'Phone number is required',
             'password.required' => 'Password is required',
-            'customer_type.required' => 'Customer type is required',
-            'customer_type.in' => 'Customer type must be either INDIVIDUAL or BUSINESS',
+            'city.required' => 'City type is required',
         ];
     }
 
