@@ -19,7 +19,13 @@ class VehicleController extends Controller
 
     public function available_vehicle(): JsonResponse
     {
-        $response = $this->vehicleService->get_all_vehicles();
+        $response = $this->vehicleService->getAllVehicles();
+        return ApiResponse::responseSuccess(VehicleResource::collection($response), 'Available vehicles');
+    }
+
+    public function getAvailableVehicle(): JsonResponse
+    {
+        $response = $this->vehicleService->getAvailableVehicles();
         return ApiResponse::responseSuccess(VehicleResource::collection($response), 'Available vehicles');
     }
 

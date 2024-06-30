@@ -222,16 +222,6 @@ class RiderService
         $rider->vehicle_id = $vehicle->id;
         $rider->save();
 
-        // DB::transaction(function () use ($rider, $data) {
-        //     foreach ($data as $field => $files) {
-        //         if (is_array($files)) {
-        //             foreach ($files as $file) {
-        //                 $this->addRiderDocument($rider, $field, $file);
-        //             }
-        //         }
-        //     }
-        // });
-
         DB::transaction(function () use ($rider, $data) {
             $documentFields = [
                 'vehicle_photo',

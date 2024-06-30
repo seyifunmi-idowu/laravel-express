@@ -52,7 +52,7 @@ class RouteServiceProvider extends ServiceProvider
         $this->mapApiRoute('/api/customer.php', '/api/v1/customer');
         $this->mapApiRoute('/api/maps.php', '/api/v1/maps');
         $this->mapApiRoute('/api/notification.php', '/api/v1/notification');
-        // $this->mapApiRoute('/api/order.php', '/api/v1/order');
+        $this->mapApiRoute('/api/order.php', '/api/v1/order');
         $this->mapApiRoute('/api/paystack.php', '/api/v1/paystack');
         $this->mapApiRoute('/api/rider.php', '/api/v1/rider');
         $this->mapApiRoute('/api/user.php', '/api/v1/user');

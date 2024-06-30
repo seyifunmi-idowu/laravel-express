@@ -28,6 +28,15 @@ class OrderTimeline extends Model
         'meta_data' => 'array',
     ];
 
+    protected $hidden = [
+        'deleted_at',
+        'state',
+        'updated_at',
+        'created_by_id',
+        'deleted_by_id',
+        'updated_by_id',
+    ];
+
     public function order()
     {
         return $this->belongsTo(Order::class);

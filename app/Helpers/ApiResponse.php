@@ -6,6 +6,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Throwable;
+use Illuminate\Http\Request;
 
 class ApiResponse
 {
@@ -97,6 +98,37 @@ class ApiResponse
         array $options = []
     ): JsonResponse {
         return self::respond($error, 'error', $message, $statusCode, $options);
+    }
+
+    public static function responsePaginate(
+        $dataQuery,
+        Request $request,
+        $resource = null
+    ): JsonResponse {
+        $perPage = $request->query('per_page', 10);
+        $data = $dataQuery->paginate($perPage);
+
+        if ($data) {
+            if ($resource){
+                $response_data = $resource::collection($data->items());
+            } else {
+                $response_data = $data->items();
+            }
+            $response = [
+                'count' => $data->total(),
+                'total_pages' => $data->lastPage(),
+                'current_page' => $data->currentPage(),
+                'data' => $response_data, 
+            ];
+        } else{
+            $response = [
+                'count' => 0,
+                'total_pages' => 1,
+                'current_page' => 1,
+                'data' => [], 
+            ];
+        }
+        return response()->json($response);
     }
 
 
