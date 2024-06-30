@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
-use App\Http\Resources\VehicleResource;
+use App\Http\Resources\GetCurrentOrderResource;
 use App\Http\Controllers\Controller;
 use App\Services\OrderService;
 use App\Services\CustomerService;
@@ -21,23 +21,27 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\GetCustomerOrderResource;
 use App\Http\Resources\OrderHistoryResource;
 use App\Http\Resources\OrderResource;
-use App\Http\Resources\AddressResource;
+use App\Http\Resources\GetOrderResource;
+use App\Services\RiderService;
 
 class OrderController extends Controller
 {
     protected OrderService $orderService;
     protected CustomerService $customerService;
     protected UserService $userService;
+    protected RiderService $riderService;
 
     public function __construct(
         OrderService $orderService, 
         CustomerService $customerService,
-        UserService $userService
+        UserService $userService,
+        riderService $riderService
     )
     {
         $this->orderService = $orderService;
         $this->customerService = $customerService;
         $this->userService = $userService;
+        $this->riderService = $riderService;
     }
 
     public function getOrderHistory(Request $request): JsonResponse
@@ -147,6 +151,45 @@ class OrderController extends Controller
     }
 
     
+    public function getRiderOrder(Request $request): JsonResponse
+    {
+        $rider = $this->riderService->getRider($request->user());
+        $orderQuery = $this->orderService->getOrderQuery(["rider_id" => $rider->id]);
+        return ApiResponse::responsePaginate($orderQuery, $request, GetOrderResource::class);
+    }
+
+    public function getRiderCompletedOrder(Request $request): JsonResponse
+    {
+        $orderQuery = $this->orderService->getCompletedOrder($request);
+        return ApiResponse::responsePaginate($orderQuery, $request, GetCurrentOrderResource::class);
+    }
+
+    public function getRiderCurrentOrder(Request $request): JsonResponse
+    {
+        $rider = $this->riderService->getRider($request->user());
+        $orderQuery = $this->orderService->getOrderQuery(['rider_id' => $rider->id])->whereIn('status', [
+            "RIDER_ACCEPTED_ORDER",
+            "RIDER_AT_PICK_UP",
+            "RIDER_PICKED_UP_ORDER",
+            "ORDER_ARRIVED",
+        ]);
+        return ApiResponse::responsePaginate($orderQuery, $request, GetCurrentOrderResource::class);
+    }
+
+    public function getRiderFailedOrder(Request $request): JsonResponse
+    {
+        $rider = $this->riderService->getRider($request->user());
+        $orderQuery = $this->orderService->getOrderQuery(['rider_id' => $rider->id])->whereIn('status', [
+            "ORDER_CANCELLED",
+        ]);
+        return ApiResponse::responsePaginate($orderQuery, $request, GetCurrentOrderResource::class);
+    }
+
+    public function getRiderNewOrder(Request $request): JsonResponse
+    {
+        $orderQuery = $this->orderService->getNewOrder($request->user());
+        return ApiResponse::responsePaginate($orderQuery, $request, GetCurrentOrderResource::class);
+    }
 
 }
 

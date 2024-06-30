@@ -22,16 +22,19 @@ class OrderService
 {
     protected UserService $userService;
     protected CustomerService $customerService;
+    protected RiderService $riderService;
     protected NotificationService $notificationService;
 
     public function __construct(
         UserService $userService,
         CustomerService $customerService,
+        RiderService $riderService,
         NotificationService $notificationService
     )
     {
         $this->userService = $userService;
         $this->customerService = $customerService;
+        $this->riderService = $riderService;
         $this->notificationService = $notificationService;
     }
 
@@ -56,11 +59,11 @@ class OrderService
 
     public function getNewOrder($user)
     {
-        $rider = Rider::where('user_id', $user->id)->first();
+        $rider = $this->riderService-> getRider($user);
         return Order::where(function ($query) use ($rider) {
             $query->where('rider_id', $rider->id)->where('status', 'PENDING_RIDER_CONFIRMATION')
                   ->orWhereNull('rider_id')->where('status', 'PENDING')->where('vehicle_id', $rider->vehicle_id);
-        })->get();
+        });
     }
 
     public function getCompletedOrder($request)
@@ -68,7 +71,8 @@ class OrderService
         $createdAt = $request->query('created_at');
         $timeframe = $request->query('timeframe');
 
-        $orderQuery = Order::where('rider_id', Auth::user()->id)->where('status', 'ORDER_COMPLETED');
+        $rider = $this->riderService-> getRider($request->user());
+        $orderQuery = Order::where('rider_id', $rider->id)->where('status', 'ORDER_COMPLETED');
 
         if ($createdAt) {
             $startDate = Carbon::parse($createdAt);
@@ -85,7 +89,7 @@ class OrderService
             }
         }
 
-        return $orderQuery->get();
+        return $orderQuery;
     }
 
     public function getCurrentOrderQuery($user)

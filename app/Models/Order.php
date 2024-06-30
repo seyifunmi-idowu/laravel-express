@@ -90,6 +90,26 @@ class Order extends Model
         return $this->order_by === 'CUSTOMER';
     }
 
+    public function getPickUpTime()
+    {
+        $orderTimeline = $this->orderTimeline()
+            ->where('status', 'RIDER_PICKED_UP_ORDER')
+            ->first();
+        
+        return $orderTimeline ? $orderTimeline->created_at->format('Y-m-d H:i:s') : null;
+    }
+
+    // Method to get delivery time
+    public function getDeliveryTime()
+    {
+        $orderTimeline = $this->orderTimeline()
+            ->where('status', 'ORDER_DELIVERED')
+            ->first();
+        
+        return $orderTimeline ? $orderTimeline->created_at->format('Y-m-d H:i:s') : null;
+    }
+
+
     protected static function boot()
     {
         parent::boot();
