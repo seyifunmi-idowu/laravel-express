@@ -5,12 +5,12 @@ namespace App\Services;
 use App\Models\Business;
 use App\Models\OTPVerification;
 use Illuminate\Database\Eloquent\Collection;
-use App\Helpers\StaticFunction;
+use App\Helpers\EncryptionClass;
 use App\Exceptions\CustomAPIException;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\RetrieveCustomerResource;
 use App\Models\User;
-use App\Models\FavoriteRider;
+use App\Models\Transaction;
 use App\Helpers\S3Uploader;
 
 class BusinessService
@@ -42,59 +42,57 @@ class BusinessService
         return $business->first();
     }
    
-    // public function registerCustomer($request)
-    // {
-    //     $email = $request->email;
-    //     $phone_number = $request->phone_number;
-    //     $fullname = $request->fullname;
-    //     $password = $request->password;
-    //     $receive_email_promotions = $request->receive_email_promotions;
-    //     $customer_type = $request->customer_type;
-    //     $business_name = $request->business_name;
-    //     $business_address = $request->business_address;
-    //     $business_category = $request->business_category;
-    //     $delivery_volume = $request->delivery_volume;
-    //     $one_signal_id = $request->one_signal_id;
-    //     $referral_code = $request->referral_code;
-    //     $first_name = explode(" ", $fullname)[0];
-    //     $last_name = explode(" ", $fullname)[1];
-        
-    //     $user = $this->userService->createUser([
-    //         'email' => $email,
-    //         'phone_number' => $phone_number,
-    //         'user_type' => "CUSTOMER",
-    //         'first_name' => $first_name,
-    //         'last_name' => $last_name,
-    //         'password' => $password,
-    //         'receive_email_promotions' => $receive_email_promotions,
-    //         'one_signal_id' => $one_signal_id,
-    //         'referral_code' => $referral_code,
-    //     ]);
-    //     // $user->assignRole('customer');
-    //     $this->createCustomer(
-    //         $user, 
-    //         [
-    //             'customer_type' => $customer_type,
-    //             'business_name' => $business_name,
-    //             'business_address' => $business_address,
-    //             'business_category' => $business_category,
-    //             'delivery_volume' => $delivery_volume
-    //         ]
-    //     );
-        
-    //     $this->authService->initiatePhoneVerification($phone_number);
+    public function updateWebhook($user, $request)
+    {
+        $business = $this->getBusiness($user);
+        $business->webhook_url = $request->webhook_url;
+        $business->save();
+    }
 
-    //     if ($customer_type == "BUSINESS"){
-    //         $session_token = "SESSION-".StaticFunction::generateCode(25);
-    //         OTPVerification::create([
-    //             'phone_number' => $phone_number,
-    //             'email' => $email,
-    //             'otp' => $session_token,
-    //         ]);
-    //         return ["session_token" => $session_token];
+    // public static function initiateTransaction($user, $amount, $callbackUrl)
+    // {
+    //     $transactionObj = TransactionService::getTransaction([
+    //         'user_id' => $user->id,
+    //         'amount' => $amount,
+    //         'transaction_type' => 'CREDIT',
+    //         'transaction_status' => 'PENDING',
+    //         'pssp' => 'PAYSTACK',
+    //     ])->first();
+
+    //     if ($transactionObj) {
+    //         $authorizationUrl = $transactionObj->pssp_meta_data['authorization_url'];
+    //         return $authorizationUrl;
     //     }
-    //     return array();
+    //     $paystackService = new PaystackService();
+    //     $paystackResponse = $paystackService->initializePayment($user->email, $amount, $callbackUrl);
+    //     $authorizationUrl = $paystackResponse['data']['authorization_url'];
+    //     $reference = $paystackResponse['data']['reference'];
+
+    //     $transactionObj = Transaction::create([
+    //         'transaction_type' => 'CREDIT',
+    //         'transaction_status' => 'PENDING',
+    //         'amount' => $amount,
+    //         'user_id' => $user->id,
+    //         'reference' => $reference,
+    //         'pssp' => 'PAYSTACK',
+    //         'payment_category' => 'FUND_WALLET',
+    //         'pssp_meta_data' => json_encode($paystackResponse['data']),
+    //         'currency' => "₦",
+    //     ]);
+
+    //     return $authorizationUrl;
     // }
+
+    public function getBusinessUserSecretKey($user)
+    {
+        $business = $this->getBusiness($user);
+        if (is_null($business->e_secret_key)) {
+            return null;
+        }
+        $encryptedAccessToken = $business->e_secret_key;
+        return EncryptionClass::decryptData($encryptedAccessToken);
+    }
+   
     
     // public function completeSignup($request){
     //     $session_token = $request->session_token;

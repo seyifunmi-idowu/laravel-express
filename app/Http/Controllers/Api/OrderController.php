@@ -311,8 +311,8 @@ class OrderController extends Controller
             $message  = collect($errors)->unique()->first();
             return ApiResponse::responseValidateError($errors,  $message[0]);
         }
-        $response = $this->orderService->placeBusinessOrder(Auth::user(), $order_id, $request);
-        return ApiResponse::responseSuccess($response, 'Order Information');
+        $order = $this->orderService->placeBusinessOrder(Auth::user(), $order_id, $request);
+        return ApiResponse::responseSuccess(new BusinessOrderResource($order), 'Order Information');
     }
 
 

@@ -511,7 +511,7 @@ class OrderService
             $this->notificationService->sendPushNotification($order->customer->user, $title, $message);
 
         } else {
-            // FeleWebhook::sendOrderToWebhook($order);
+            FeleWebhook::sendOrderToWebhook($order);
         }
 
         return $order;
@@ -530,7 +530,7 @@ class OrderService
             $message = "Your rider {$order->rider->display_name}, is at pickup location: {$order->pickup_name}";
             $this->notificationService->sendPushNotification($order->customer->user, $title, $message);
         } else {
-            // FeleWebhook::sendOrderToWebhook($order);
+            FeleWebhook::sendOrderToWebhook($order);
         }
     }
 
@@ -552,7 +552,7 @@ class OrderService
             $message = "Your goods are on the way to drop off";
             $this->notificationService->sendPushNotification($order->customer->user, $title, $message);
         } else {
-            // FeleWebhook::sendOrderToWebhook($order);
+            FeleWebhook::sendOrderToWebhook($order);
         }
     }
 
@@ -571,7 +571,7 @@ class OrderService
             $message = "Your rider {$order->rider->display_name}, failed to pick up because: {$reason}";
             $this->notificationService->sendPushNotification($order->customer->user, $title, $message);
         } else {
-            // FeleWebhook::sendOrderToWebhook($order);
+            FeleWebhook::sendOrderToWebhook($order);
         }
     }
 
@@ -588,7 +588,7 @@ class OrderService
             $message = "Your rider {$order->rider->display_name}, is at drop off point: {$order->delivery_name}";
             $this->notificationService->sendPushNotification($order->customer->user, $title, $message);
         } else {
-            // FeleWebhook::sendOrderToWebhook($order);
+            FeleWebhook::sendOrderToWebhook($order);
         }
     }
 
@@ -606,13 +606,13 @@ class OrderService
         $order->save();
 
         if (!$order->isCustomerOrder()) {
-            // FeleWebhook::sendOrderToWebhook($order);
+            FeleWebhook::sendOrderToWebhook($order);
         }
         if ($order->payment_method === "WALLET"){
             if ($order->isCustomerOrder()) {
                 $this->debitCustomer($order);
             } else {
-                // $this->debitBusiness($order);
+                $this->debitBusiness($order);
             }
         }
     }
@@ -891,7 +891,7 @@ class OrderService
         $order->order_meta_data = json_encode($metaData);
         $order->save();
         $this->notifyRidersAroundLocation($order);
-        return true;
+        return $order;
     }
 
 }
