@@ -28,6 +28,7 @@ class OrderService
     protected NotificationService $notificationService;
     protected WalletService $walletService;
     protected PaystackService $paystackService;
+    protected BusinessService $businessService;
 
     public function __construct(
         UserService $userService,
@@ -35,7 +36,8 @@ class OrderService
         RiderService $riderService,
         NotificationService $notificationService,
         WalletService $walletService,
-        PaystackService $paystackService
+        PaystackService $paystackService,
+        BusinessService $businessService
     )
     {
         $this->userService = $userService;
@@ -44,6 +46,7 @@ class OrderService
         $this->notificationService = $notificationService;
         $this->walletService = $walletService;
         $this->paystackService = $paystackService;
+        $this->businessService = $businessService;
     }
 
     public function getOrder($orderId, $conditions = [], $raise404 = true)
@@ -294,8 +297,8 @@ class OrderService
             $customer = $this->customerService->getCustomer($user);
             $this->createOrder($orderId, $customer, $data);
         } else {
-            // $business = BusinessService::getBusiness($user);
-            // $this->createBusinessOrder($orderId, $business, $data);
+            $business = $this->businessService->getBusiness($user);
+            $this->createBusinessOrder($orderId, $business, $data);
         }
 
         unset($data['timeline'], $data['vehicle_id'], $data['user_id']);
@@ -342,18 +345,14 @@ class OrderService
         $order->status = 'PENDING';
         $order->payment_method = $request->payment_method;
         $order->payment_by = $request->payment_by;
-        $metaData = $order->order_meta_data;
-
-        if (isset($data['note_to_driver'])) {
-            $metaData['note_to_driver'] = $data['note_to_driver'];
+        $metaData = json_decode($order->order_meta_data, true);
+        if (isset($request->note_to_driver)) {
+            $metaData['note_to_driver'] = $request->note_to_driver;
         }
-
-        if (isset($data['promo_code'])) {
-            $metaData['promo_code'] = $data['promo_code'];
+        if (isset($request->promo_code)) {
+            $metaData['promo_code'] = $request->promo_code;
         }
-
-        $order->order_meta_data = $metaData;
-        $order->save();
+        $order->order_meta_data = json_encode($metaData);
         $this->notifyRidersAroundLocation($order);
         return true;
     }
@@ -806,15 +805,92 @@ class OrderService
     }
 
 
-
-
-    protected function createBusinessOrder($orderId, $business, $data)
+    public function createBusinessOrder($orderId, $business, $data)
     {
-        // Implement your logic to create an order for a business.
+        $pickup = $data['pickup'];
+        $delivery = $data['delivery'];
+        $totalDuration = $data['total_duration'] ?? null;
+        $totalDistance = $data['total_distance'] ?? null;
+        $stopOvers = $data['stop_overs'] ?? [];
+        $vehicleId = $data['vehicle_id'] ?? null;
+        $timeline = $data['timeline'];
+        $firstTimelineEntry = $timeline[0];
+        $toData = $firstTimelineEntry['to'] ?? [];
+        $fromData = $firstTimelineEntry['from'] ?? [];
+        $pickupLongitude = $fromData['longitude'] ?? null;
+        $pickupLatitude = $fromData['latitude'] ?? null;
+        $pickupName = $fromData['name'] ?? null;
+        $deliveryLongitude = $toData['longitude'] ?? null;
+        $deliveryLatitude = $toData['latitude'] ?? null;
+        $deliveryName = $toData['name'] ?? null;
+
+        if ($pickup['save_address'] ?? false) {
+            $this->saveAddress($business, $pickup);
+        }
+        if ($delivery['save_address'] ?? false) {
+            $this->saveAddress($business, $delivery);
+        }
+
+        $orderMetaData = [
+            'note_to_driver' => $data['note_to_driver'] ?? null,
+            'promo_code' => $data['promo_code'] ?? null,
+            'timeline' => $timeline,
+            'pickup' => $pickup,
+            'delivery' => $delivery,
+        ];
+
+        return Order::create([
+            'business_id' => $business->id,
+            'vehicle_id' => VehicleService::getVehicle($vehicleId)->id,
+            'order_id' => $orderId,
+            'status' => 'PROCESSING_ORDER',
+            'pickup_number' => $pickup['contact_phone_number'] ?? null,
+            'pickup_contact_name' => $pickup['contact_name'] ?? null,
+            'pickup_location' => $pickup['address'],
+            'pickup_name' => $pickup['name'] ?? $pickupName,
+            'pickup_location_longitude' => $pickup['longitude'] ?? $pickupLongitude,
+            'pickup_location_latitude' => $pickup['latitude'] ?? $pickupLatitude,
+            'delivery_number' => $delivery['contact_phone_number'] ?? null,
+            'delivery_contact_name' => $delivery['contact_name'] ?? null,
+            'delivery_location' => $delivery['address'],
+            'delivery_name' => $delivery['name'] ?? $deliveryName,
+            'delivery_location_longitude' => $delivery['longitude'] ?? $deliveryLongitude,
+            'delivery_location_latitude' => $delivery['latitude'] ?? $deliveryLatitude,
+            'order_stop_overs_meta_data' => json_encode($stopOvers),
+            'total_amount' => $data['total_price'],
+            'tip_amount' => $data['tip_amount'] ?? null,
+            'distance' => $totalDistance,
+            'duration' => $totalDuration,
+            'order_meta_data' => json_encode($orderMetaData),
+            'payment_method' => "WALLET",
+            'payment_by' => null,
+            'order_by' => 'BUSINESS',
+            'paid' => false,
+            'paid_fele' => false,
+            'fele_amount' => 0
+        ]);
     }
 
-
-    
-
+    public function placeBusinessOrder($user, $orderId, $request)
+    {
+        $business = $this->businessService->getBusiness($user);
+        $order = $this->getOrder($orderId, ['business_id' => $business->id]);
+        $userWallet = $user->wallet;
+        if ($userWallet->balance < $order->total_amount) {
+            throw new CustomAPIException(
+                "You don't have sufficient balance in your wallet to place the order. Kindly fund your wallet.",
+                400
+            );
+        }
+        $order->status = 'PENDING';
+        $metaData = json_decode($order->order_meta_data, true);
+        if (isset($request->note_to_driver)) {
+            $metaData['note_to_driver'] = $request->note_to_driver;
+        }
+        $order->order_meta_data = json_encode($metaData);
+        $order->save();
+        $this->notifyRidersAroundLocation($order);
+        return true;
+    }
 
 }

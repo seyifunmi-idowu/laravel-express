@@ -21,12 +21,12 @@ Route::middleware(['auth:jwt'])->prefix('customer')->group(function () {
 });
 
 Route::middleware(['auth:jwt'])->prefix('rider')->group(function () {
-    Route::get('/', [OrderController::class, 'getRiderOrder']);
+    Route::get('/', [OrderController::class, 'listRiderOrder']);
     Route::get('completed', [OrderController::class, 'getRiderCompletedOrder']);
     Route::get('current', [OrderController::class, 'getRiderCurrentOrder']);
     Route::get('failed', [OrderController::class, 'getRiderFailedOrder']);
     Route::get('new', [OrderController::class, 'getRiderNewOrder']);
-    Route::get('{order_id}', [OrderController::class, 'geRidertOrder']);
+    Route::get('{order_id}', [OrderController::class, 'getRiderOrder']);
 
     Route::post('{order_id}/accept', [OrderController::class, 'riderAcceptCustomerOrder']);
     Route::post('{order_id}/at-pick-up', [OrderController::class, 'riderAtPickUp']);
@@ -35,4 +35,13 @@ Route::middleware(['auth:jwt'])->prefix('rider')->group(function () {
     Route::post('{order_id}/at-destination', [OrderController::class, 'riderAtDestination']);
     Route::post('{order_id}/made-delivery', [OrderController::class, 'riderMadeDelivery']);
     Route::post('{order_id}/received-payment', [OrderController::class, 'riderReceivePayment']);
+});
+
+
+Route::middleware(['auth:jwt'])->prefix('business')->group(function () {
+    Route::get('/', [OrderController::class, 'listBusinessOrder']);
+    Route::get('{order_id}', [OrderController::class, 'getBusinessOrder']);
+
+    Route::post('/', [OrderController::class, 'initiateBusinessOrder']);
+    Route::post('{order_id}/place-order', [OrderController::class, 'placeBusinessOrder']);
 });

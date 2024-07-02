@@ -23,7 +23,9 @@ use App\Http\Resources\OrderHistoryResource;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\GetOrderResource;
 use App\Http\Resources\RiderOrderResource;
+use App\Http\Resources\BusinessOrderResource;
 use App\Services\RiderService;
+use App\Services\BusinessService;
 
 class OrderController extends Controller
 {
@@ -31,18 +33,21 @@ class OrderController extends Controller
     protected CustomerService $customerService;
     protected UserService $userService;
     protected RiderService $riderService;
+    protected BusinessService $businessService;
 
     public function __construct(
         OrderService $orderService, 
         CustomerService $customerService,
         UserService $userService,
-        riderService $riderService
+        RiderService $riderService,
+        BusinessService $businessService
     )
     {
         $this->orderService = $orderService;
         $this->customerService = $customerService;
         $this->userService = $userService;
         $this->riderService = $riderService;
+        $this->businessService = $businessService;
     }
 
     public function getOrderHistory(Request $request): JsonResponse
@@ -152,7 +157,7 @@ class OrderController extends Controller
     }
 
     
-    public function getRiderOrder(Request $request): JsonResponse
+    public function listRiderOrder(Request $request): JsonResponse
     {
         $rider = $this->riderService->getRider($request->user());
         $orderQuery = $this->orderService->getOrderQuery(["rider_id" => $rider->id]);
@@ -192,7 +197,7 @@ class OrderController extends Controller
         return ApiResponse::responsePaginate($orderQuery, $request, GetCurrentOrderResource::class);
     }
 
-    public function geRidertOrder(Request $request, $order_id): JsonResponse
+    public function getRiderOrder(Request $request, $order_id): JsonResponse
     {
         $rider = $this->riderService->getRider($request->user());
         $order = $this->orderService->getOrder($order_id, ['rider_id' => $rider->id]);
@@ -274,7 +279,41 @@ class OrderController extends Controller
         return ApiResponse::responseSuccess([], 'Order Updated');
     }
 
+    public function listBusinessOrder(Request $request): JsonResponse
+    {
+        $business = $this->businessService->getBusiness($request->user());
+        $orderQuery = $this->orderService->getOrderQuery(['business_id' => $business->id]);
+        return ApiResponse::responsePaginate($orderQuery, $request, GetCustomerOrderResource::class);
+    }
 
+    public function getBusinessOrder(Request $request, $order_id): JsonResponse
+    {
+        $business = $this->businessService->getBusiness($request->user());
+        $order = $this->orderService->getOrder($order_id, ['business_id' => $business->id]);
+        return ApiResponse::responseSuccess(new BusinessOrderResource($order), 'Order Information');
+    }
+
+    public function initiateBusinessOrder(InitiateOrderRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+        $response = $this->orderService->initiateOrder(Auth::user(), $data, false);
+        return ApiResponse::responseSuccess($response, 'Order Information');
+    }
+
+    public function placeBusinessOrder(Request $request, $order_id)
+    {
+        try{
+            $request->validate([
+                'note_to_driver' => 'nullable|string'
+            ]);
+        } catch (ValidationException $e) {
+            $errors =$e->errors();
+            $message  = collect($errors)->unique()->first();
+            return ApiResponse::responseValidateError($errors,  $message[0]);
+        }
+        $response = $this->orderService->placeBusinessOrder(Auth::user(), $order_id, $request);
+        return ApiResponse::responseSuccess($response, 'Order Information');
+    }
 
 
 }
