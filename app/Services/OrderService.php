@@ -474,6 +474,146 @@ class OrderService
         return true;
     }
 
+    public function riderAcceptCustomerOrder(User $user, $orderId)
+    {
+        $rider = $this->riderService-> getRider($user);
+        $order = $this->getOrder($orderId);
+
+        $passRider = false;
+        if (is_null($order->rider) && $order->status == 'PENDING') {
+            $passRider = true;
+        }
+
+        if ($order->rider && $order->rider->user_id == $user->id && $order->status == 'PENDING_RIDER_CONFIRMATION') {
+            $passRider = true;
+        }
+
+        if (!$passRider) {
+            throw new CustomAPIException('Cannot accept order.', 400);
+        }
+        $rider = $this->riderService-> getRider($user);
+        $this->addOrderTimelineEntry($order, 'RIDER_ACCEPTED_ORDER');
+        $order->rider()->associate($rider);
+        $order->status = 'RIDER_ACCEPTED_ORDER';
+        $order->save();
+
+        $title = "Rider accept order #{$orderId}";
+        if ($order->isCustomerOrder()) {
+            $message = "Your order has been accepted by {$rider->display_name}. Vehicle type: {$rider->vehicle_type} \n Plate number: {$rider->vehicle_plate_number}";
+            $this->notificationService->sendPushNotification($order->customer->user, $title, $message);
+
+        } else {
+            // FeleWebhook::sendOrderToWebhook($order);
+        }
+
+        return $order;
+    }
+
+    public function riderAtPickup($user, $orderId)
+    {
+        $rider = $this->riderService-> getRider($user);
+        $order = $this->getOrder($orderId, ['rider_id' => $rider->id]);
+        $this->addOrderTimelineEntry($order, 'RIDER_AT_PICK_UP');
+        $order->status = 'RIDER_AT_PICK_UP';
+        $order->save();
+
+        if ($order->isCustomerOrder()) {
+            $title = "Rider arrived at pickup: #{$orderId}";
+            $message = "Your rider {$order->rider->display_name}, is at pickup location: {$order->pickup_name}";
+            $this->notificationService->sendPushNotification($order->customer->user, $title, $message);
+        } else {
+            // FeleWebhook::sendOrderToWebhook($order);
+        }
+    }
+
+    public function riderPickupOrder($orderId, User $user, $file)
+    {
+        $rider = $this->riderService-> getRider($user);
+        $order = $this->getOrder($orderId, ['rider_id' => $rider->id]);
+
+        $fileName = $file->getClientOriginalName();
+        $s3Uploader = new S3Uploader("/order/{$orderId}");
+        $fileUrl = $s3Uploader->uploadFileObject($file, $fileName);
+
+        $this->addOrderTimelineEntry($order, 'RIDER_PICKED_UP_ORDER', $fileUrl);
+        $order->status = 'RIDER_PICKED_UP_ORDER';
+        $order->save();
+
+        if ($order->isCustomerOrder()) {
+            $title = "Rider on the way to deliver: #{$orderId}";
+            $message = "Your goods are on the way to drop off";
+            $this->notificationService->sendPushNotification($order->customer->user, $title, $message);
+        } else {
+            // FeleWebhook::sendOrderToWebhook($order);
+        }
+    }
+
+    public function riderFailedPickup($orderId, User $user, $reason)
+    {
+        $rider = $this->riderService-> getRider($user);
+        $order = $this->getOrder($orderId, ['rider_id' => $rider->id]);
+
+        $this->addOrderTimelineEntry($order, 'FAILED_PICKUP', null, $reason);
+        $this->addOrderTimelineEntry($order, 'ORDER_CANCELLED');
+        $order->status = 'ORDER_CANCELLED';
+        $order->save();
+
+        if ($order->isCustomerOrder()) {
+            $title = "Rider failed to pick order: #{$orderId}";
+            $message = "Your rider {$order->rider->display_name}, failed to pick up because: {$reason}";
+            $this->notificationService->sendPushNotification($order->customer->user, $title, $message);
+        } else {
+            // FeleWebhook::sendOrderToWebhook($order);
+        }
+    }
+
+    public function riderAtDestination($orderId, User $user)
+    {
+        $rider = $this->riderService-> getRider($user);
+        $order = $this->getOrder($orderId, ['rider_id' => $rider->id]);
+        $this->addOrderTimelineEntry($order, 'ORDER_ARRIVED');
+        $order->status = 'ORDER_ARRIVED';
+        $order->save();
+
+        if ($order->isCustomerOrder()) {
+            $title = "Rider at drop off: #{$orderId}";
+            $message = "Your rider {$order->rider->display_name}, is at drop off point: {$order->delivery_name}";
+            $this->notificationService->sendPushNotification($order->customer->user, $title, $message);
+        } else {
+            // FeleWebhook::sendOrderToWebhook($order);
+        }
+    }
+
+    public function riderMadeDelivery($orderId, User $user, $file)
+    {
+        $rider = $this->riderService-> getRider($user);
+        $order = $this->getOrder($orderId, ['rider_id' => $rider->id]);
+
+        $fileName = $file->getClientOriginalName();
+        $s3Uploader = new S3Uploader("/order/{$orderId}");
+        $fileUrl = $s3Uploader->uploadFileObject($file, $fileName);
+
+        $this->addOrderTimelineEntry($order, 'ORDER_DELIVERED', $fileUrl);
+        $order->status = 'ORDER_DELIVERED';
+        $order->save();
+
+        if (!$order->isCustomerOrder()) {
+            // FeleWebhook::sendOrderToWebhook($order);
+        }
+        if ($order->payment_method === "WALLET"){
+            if ($order->isCustomerOrder()) {
+                $this->debitCustomer($order);
+            } else {
+                $this->debitBusiness($order);
+            }
+        }
+    }
+
+    public function riderReceivePayment($orderId, User $user)
+    {
+
+    }
+
     protected function createBusinessOrder($orderId, $business, $data)
     {
         // Implement your logic to create an order for a business.

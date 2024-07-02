@@ -22,6 +22,7 @@ use App\Http\Resources\GetCustomerOrderResource;
 use App\Http\Resources\OrderHistoryResource;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\GetOrderResource;
+use App\Http\Resources\RiderOrderResource;
 use App\Services\RiderService;
 
 class OrderController extends Controller
@@ -190,6 +191,91 @@ class OrderController extends Controller
         $orderQuery = $this->orderService->getNewOrder($request->user());
         return ApiResponse::responsePaginate($orderQuery, $request, GetCurrentOrderResource::class);
     }
+
+    public function geRidertOrder(Request $request, $order_id): JsonResponse
+    {
+        $rider = $this->riderService->getRider($request->user());
+        $order = $this->orderService->getOrder($order_id, ['rider_id' => $rider->id]);
+        return ApiResponse::responseSuccess(new RiderOrderResource($order), 'Order Information');
+    }
+
+    public function riderAcceptCustomerOrder(Request $request, $order_id): JsonResponse
+    {
+        $order = $this->orderService->riderAcceptCustomerOrder($request->user(), $order_id);
+        return ApiResponse::responseSuccess(new RiderOrderResource($order), 'Order Information');
+    }
+
+    public function riderAtPickup(Request $request, $order_id): JsonResponse
+    {
+        $this->orderService->riderAtPickup($request->user(), $order_id);
+        return ApiResponse::responseSuccess([], 'Order Updated');
+    }
+
+    public function riderPickupOrder(Request $request, $order_id): JsonResponse
+    {
+        try{
+            $request->validate([
+                'proof' => 'nullable',
+
+            ]);
+        } catch (ValidationException $e) {
+            $errors =$e->errors();
+            $message  = collect($errors)->unique()->first();
+            return ApiResponse::responseValidateError($errors,  $message[0]);
+        }
+        $proof = $request->file('proof');
+        $this->orderService->riderPickupOrder($order_id, $request->user(), $proof);
+        return ApiResponse::responseSuccess([], 'Order Updated');
+    }
+
+    public function riderFailedPickup(Request $request, $order_id): JsonResponse
+    {
+        try{
+            $request->validate([
+                'reason' => 'required',
+
+            ]);
+        } catch (ValidationException $e) {
+            $errors =$e->errors();
+            $message  = collect($errors)->unique()->first();
+            return ApiResponse::responseValidateError($errors,  $message[0]);
+        }
+        $reason = $request->reason;
+        $this->orderService->riderFailedPickup($order_id, $request->user(), $reason);
+        return ApiResponse::responseSuccess([], 'Order Updated');
+    }
+
+    public function riderAtDestination(Request $request, $order_id): JsonResponse
+    {
+        $this->orderService->riderAtDestination($order_id, $request->user());
+        return ApiResponse::responseSuccess([], 'Order Updated');
+    }
+
+    public function riderMadeDelivery(Request $request, $order_id): JsonResponse
+    {
+        try{
+            $request->validate([
+                'proof' => 'nullable',
+
+            ]);
+        } catch (ValidationException $e) {
+            $errors =$e->errors();
+            $message  = collect($errors)->unique()->first();
+            return ApiResponse::responseValidateError($errors,  $message[0]);
+        }
+        $proof = $request->file('proof');
+        $this->orderService->riderMadeDelivery($order_id, $request->user(), $proof);
+        return ApiResponse::responseSuccess([], 'Order Updated');
+    }
+
+    public function riderReceivePayment(Request $request, $order_id): JsonResponse
+    {
+        $this->orderService->riderReceivePayment($order_id, $request->user());
+        return ApiResponse::responseSuccess([], 'Order Updated');
+    }
+
+
+
 
 }
 
