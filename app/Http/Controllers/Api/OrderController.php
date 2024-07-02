@@ -270,7 +270,7 @@ class OrderController extends Controller
 
     public function riderReceivePayment(Request $request, $order_id): JsonResponse
     {
-        $this->orderService->riderReceivePayment($order_id, $request->user());
+        $this->orderService->riderReceivedPayment($order_id, $request->user());
         return ApiResponse::responseSuccess([], 'Order Updated');
     }
 

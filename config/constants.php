@@ -44,5 +44,6 @@ return [
     'TERMII_SECRET_KEY' => env('TERMII_SECRET_KEY', ''),
     'TERMII_SMS_FROM' => env('TERMII_SMS_FROM', ''),
     'ALLOW_SERVER_SENT_EVENTS' => env('ALLOW_SERVER_SENT_EVENTS', ''),
+    'FELE_CHARGE' => env('FELE_CHARGE', ''),
     'ADMIN_EMAILS' => $adminEmailsArray,
 ];

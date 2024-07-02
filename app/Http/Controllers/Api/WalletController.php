@@ -121,7 +121,7 @@ class WalletController extends Controller
 
     public function getUserCards(Request $request): JsonResponse
     {
-        $response = $this->walletService->getUserCards($request->user());
+        $response = $this->walletService->getUserCards($request->user())->get();
         return ApiResponse::responseSuccess($response, 'User cards');
     }
 

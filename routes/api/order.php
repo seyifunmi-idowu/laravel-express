@@ -33,6 +33,6 @@ Route::middleware(['auth:jwt'])->prefix('rider')->group(function () {
     Route::post('{order_id}/pick-up-order', [OrderController::class, 'riderPickUpOrder']);
     Route::post('{order_id}/failed-pick-up', [OrderController::class, 'riderFailedPickup']);
     Route::post('{order_id}/at-destination', [OrderController::class, 'riderAtDestination']);
-    // Route::post('{order_id}/made-delivery', [OrderController::class, 'madeDelivery']);
-    // Route::post('{order_id}/received-payment', [OrderController::class, 'RiderReceivedPayment']);
+    Route::post('{order_id}/made-delivery', [OrderController::class, 'riderMadeDelivery']);
+    Route::post('{order_id}/received-payment', [OrderController::class, 'riderReceivePayment']);
 });

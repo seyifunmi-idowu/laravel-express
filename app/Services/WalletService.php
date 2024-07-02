@@ -10,6 +10,7 @@ use App\Models\Card;
 use App\Helpers\Validator;
 use Carbon\Carbon;
 use App\Exceptions\CustomAPIException;
+use App\Helpers\StaticFunction;
 use PhpParser\Node\Expr\FuncCall;
 
 class WalletService
@@ -194,7 +195,7 @@ class WalletService
 
     public function getUserCards($user, array $filters = [])
     {
-        return Card::where('user_id', $user->id)->where($filters)->get();
+        return Card::where('user_id', $user->id)->where($filters);
     }
 
     public function createUserCard($user, array $attributes)

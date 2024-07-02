@@ -14,6 +14,8 @@ use App\Models\Order;
 use App\Models\FavoriteRider;
 use App\Models\User;
 use App\Models\RiderRating;
+use App\Models\RiderCommission;
+use App\Models\Transaction;
 use App\Helpers\S3Uploader;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -24,18 +26,24 @@ class OrderService
     protected CustomerService $customerService;
     protected RiderService $riderService;
     protected NotificationService $notificationService;
+    protected WalletService $walletService;
+    protected PaystackService $paystackService;
 
     public function __construct(
         UserService $userService,
         CustomerService $customerService,
         RiderService $riderService,
-        NotificationService $notificationService
+        NotificationService $notificationService,
+        WalletService $walletService,
+        PaystackService $paystackService
     )
     {
         $this->userService = $userService;
         $this->customerService = $customerService;
         $this->riderService = $riderService;
         $this->notificationService = $notificationService;
+        $this->walletService = $walletService;
+        $this->paystackService = $paystackService;
     }
 
     public function getOrder($orderId, $conditions = [], $raise404 = true)
@@ -604,15 +612,201 @@ class OrderService
             if ($order->isCustomerOrder()) {
                 $this->debitCustomer($order);
             } else {
-                $this->debitBusiness($order);
+                // $this->debitBusiness($order);
             }
         }
     }
 
-    public function riderReceivePayment($orderId, User $user)
+    public function riderReceivedPayment($orderId, User $user)
     {
+        $rider = $this->riderService-> getRider($user);
+        $order = $this->getOrder($orderId, ['rider_id' => $rider->id]);
+        $riderCommission = RiderCommission::where('rider_id', $rider->id)->latest()->first();
+        
+        if ($riderCommission) {
+            $charge = 100 - intval($riderCommission->commission->commission);
+        } else {
+            $charge = config('constants.FELE_CHARGE');
+        }
 
+        $this->addOrderTimelineEntry($order, 'ORDER_COMPLETED');
+        
+        $order->paid = true;
+        $order->status = 'ORDER_COMPLETED';
+        $order->fele_amount = $order->total_amount * ($charge / 100);
+        $order->paid_fele = true;
+        $order->save();
+
+        $riderUser = $order->rider->user;
+        $riderUserWallet = $riderUser->wallet;
+        $reference = StaticFunction::generateCode(10);
+
+        $transactionData = [
+            'transaction_type' => 'CREDIT',
+            'transaction_status' => 'SUCCESS',
+            'amount' => $order->total_amount,
+            'user_id' => $user->id,
+            'reference' => $reference,
+            'payment_category' => 'CUSTOMER_PAY_RIDER',
+            'pssp_meta_data' => [],
+            'currency' => "₦",
+            'wallet_id' => $riderUserWallet->id,
+            'pssp' => 'IN_HOUSE'
+        ];
+        Transaction::create($transactionData);
+
+        $riderUserWallet->withdraw($order->fele_amount, true);
+        
+        $title = "Order Completed: #{$orderId}";
+        $message = "Order completed, don't forget to rate rider.";
+        $this->notificationService->sendPushNotification($order->customer->user, $title, $message);
+        return $order;
     }
+
+    public function debitCustomer($order)
+    {
+        $madePayment = false;
+
+        DB::transaction(function() use ($order, &$madePayment) {
+            $amount = $order->total_amount;
+            $customerUser = $order->customer->user;
+            $customerUserWallet = $customerUser->wallet;
+            $transactionObj = null;
+
+            if ($customerUserWallet->balance > $amount) {
+                // debit wallet and mark as completed
+                $reference = StaticFunction::generateCode(10);
+                $customerUserWallet->withdraw($amount);
+                $transactionObj = Transaction::create([
+                    'transaction_type' => 'DEBIT',
+                    'transaction_status' => 'SUCCESS',
+                    'amount' => $amount,
+                    'user_id' => $customerUser->id,
+                    'reference' => $reference,
+                    'pssp' => 'IN_HOUSE',
+                    'payment_category' => 'CUSTOMER_PAY_RIDER',
+                    'currency' => "₦",
+                ]);
+                $madePayment = true;
+            } else {
+                // debit card
+                $userCard = $this->walletService->getUserCards($customerUser)->first();
+                if ($userCard) {
+                    $response = $this->paystackService->chargeCard($customerUser->email, $amount, $userCard->card_auth);
+                    if ($response['status'] && $response['data']['status'] === 'success') {
+                        $reference = $response['data']['reference'];
+                        $transactionObj = Transaction::create([
+                            'transaction_type' => 'DEBIT',
+                            'transaction_status' => 'SUCCESS',
+                            'amount' => $amount,
+                            'user_id' => $customerUser->id,
+                            'reference' => $reference,
+                            'pssp' => 'PAYSTACK',
+                            'payment_category' => 'CUSTOMER_PAY_RIDER',
+                            'currency' => "₦",
+                        ]);
+                        $madePayment = true;
+                    }
+                }
+            }
+
+            if ($madePayment) {
+                $this->creditRider($order, $transactionObj);
+            }
+        });
+
+        return $madePayment;
+    }
+
+    public function debitBusiness($order)
+    {
+        $madePayment = false;
+
+        DB::transaction(function() use ($order, &$madePayment) {
+            $amount = $order->total_amount;
+            $businessUser = $order->business->user;
+            $businessUserWallet = $businessUser->wallet;
+            $transactionObj = null;
+
+            if ($businessUserWallet->balance > $amount) {
+                // debit wallet and mark as completed
+                $reference = StaticFunction::generateCode(10);
+                $businessUserWallet->withdraw($amount);
+                $transactionObj = Transaction::create([
+                    'transaction_type' => 'DEBIT',
+                    'transaction_status' => 'SUCCESS',
+                    'amount' => $amount,
+                    'user_id' => $businessUser->id,
+                    'reference' => $reference,
+                    'pssp' => 'IN_HOUSE',
+                    'payment_category' => 'CUSTOMER_PAY_RIDER',
+                    'currency' => "₦",
+                ]);
+
+                $madePayment = true;
+            } else {
+                // debit card
+                $userCard = $this->walletService->getUserCards($businessUser)->first();
+
+                if ($userCard) {
+                    $response = $this->paystackService->chargeCard($businessUser->email, $amount, $userCard->card_auth);
+                    if ($response['status'] && $response['data']['status'] === 'success') {
+                        $reference = $response['data']['reference'];
+                        $transactionObj = Transaction::create([
+                            'transaction_type' => 'DEBIT',
+                            'transaction_status' => 'SUCCESS',
+                            'amount' => $amount,
+                            'user_id' => $businessUser->id,
+                            'reference' => $reference,
+                            'pssp' => 'PAYSTACK',
+                            'payment_category' => 'CUSTOMER_PAY_RIDER',
+                            'currency' => "₦",
+                        ]);
+                        $madePayment = true;
+                    }
+                }
+            }
+
+            if ($madePayment) {
+                $this->creditRider($order, $transactionObj);
+            }
+        });
+
+        return $madePayment;
+    }
+
+    public function creditRider($order, $transactionObj)
+    {
+        $amount = $transactionObj->amount;
+        $riderCommission = RiderCommission::where('rider_id', $order->rider->id)->latest()->first();
+        $charge = $riderCommission ? 100 - intval($riderCommission->commission->commission) : config('constants.FELE_CHARGE');
+
+        $this->addOrderTimelineEntry($order, 'ORDER_COMPLETED');
+        $order->paid = true;
+        $order->status = 'ORDER_COMPLETED';
+        $order->fele_amount = $amount * ($charge / 100);
+        $order->paid_fele = true;
+        $order->save();
+
+        $riderUser = $order->rider->user;
+        $riderUserWallet = $riderUser->wallet;
+        Transaction::create([
+            'transaction_type' => 'CREDIT',
+            'transaction_status' => 'SUCCESS',
+            'amount' => $amount,
+            'user_id' => $riderUser->id,
+            'reference' => $transactionObj->reference,
+            'pssp' => $transactionObj->pssp,
+            'payment_category' => 'CUSTOMER_PAY_RIDER',
+            'wallet_id' => $riderUserWallet->id,
+            'currency' => "₦",
+        ]);
+        $riderUserWallet->deposit($order->total_amount - $order->fele_amount);
+        // TODO: check if rider has outstanding and deduct it
+    }
+
+
+
 
     protected function createBusinessOrder($orderId, $business, $data)
     {
