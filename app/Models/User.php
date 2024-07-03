@@ -11,8 +11,11 @@ use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 use Spatie\Permission\Traits\HasRoles;
 use App\Helpers\StaticFunction;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Filament\Models\Contracts\HasName;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 
-class User extends Authenticatable implements JWTSubject
+class User extends Authenticatable implements JWTSubject, FilamentUser, HasName
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
 
@@ -86,6 +89,15 @@ class User extends Authenticatable implements JWTSubject
         });
     }
 
+    public function getFilamentName(): string
+    {
+        return "{$this->first_name} {$this->last_name}";
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->is_superuser;
+    }
 
     public function getJWTIdentifier()
     {
