@@ -41,8 +41,8 @@ class TransactionResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Placeholder::make('user_full_name')
-                ->label('User Name')
-                ->content(fn ($record) => $record->user->first_name . ' ' . $record->user->last_name),
+                ->label('User')
+                ->content(fn ($record) => $record->user->display_name),
 
                 Forms\Components\TextInput::make('currency')->disabled(),
                 Forms\Components\TextInput::make('amount')->disabled(),
@@ -52,6 +52,7 @@ class TransactionResource extends Resource
                 Forms\Components\TextInput::make('payment_channel')->disabled(),
                 Forms\Components\TextInput::make('description')->disabled(),
                 Forms\Components\TextInput::make('payment_category')->disabled(),
+                Forms\Components\TextInput::make('created_at')->disabled(),
             ]);
     }
 
@@ -59,10 +60,10 @@ class TransactionResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.first_name'),
-                Tables\Columns\TextColumn::make('user.last_name'),
+                Tables\Columns\TextColumn::make('user.display_name'),
                 Tables\Columns\TextColumn::make('amount'),
                 Tables\Columns\TextColumn::make('reference'),
+                Tables\Columns\TextColumn::make('created_at'),
                 Tables\Columns\TextColumn::make('transaction_status')->color(fn (string $state): string => match ($state) {
                     'PENDING' => 'info',
                     'FAILED' => 'warning',
@@ -77,10 +78,11 @@ class TransactionResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(), 
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    // Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }

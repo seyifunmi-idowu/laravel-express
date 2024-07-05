@@ -25,11 +25,11 @@ class ReferralUserResource extends Resource
             ->schema([
                 Forms\Components\Placeholder::make('referred_by_full_name')
                     ->label('Referred By')
-                    ->content(fn ($record) => $record->referredBy->first_name . ' ' . $record->referredBy->last_name)
+                    ->content(fn ($record) => $record->referredBy->display_name)
                     ->columnSpanFull(),
                 Forms\Components\Placeholder::make('referred_user_full_name')
                     ->label('Referred User')
-                    ->content(fn ($record) => $record->referredUser->first_name . ' ' . $record->referredUser->last_name)
+                    ->content(fn ($record) => $record->referredUser->display_name)
                     ->columnSpanFull(),
 
             ]);
@@ -39,10 +39,8 @@ class ReferralUserResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('referredBy.first_name')->label('Referred By first name'),
-                Tables\Columns\TextColumn::make('referredBy.last_name')->label('Referred By last name'),
-                Tables\Columns\TextColumn::make('referredUser.first_name')->label('Referred User last name'),
-                Tables\Columns\TextColumn::make('referredUser.last_name')->label('Referred User last name'),
+                Tables\Columns\TextColumn::make('referredBy.display_name')->label('Referred By'),
+                Tables\Columns\TextColumn::make('referredUser.display_name')->label('Referred User'),
             ])
             ->filters([
                 //

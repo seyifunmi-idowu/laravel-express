@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Helpers\StaticFunction;
+use Illuminate\Database\Eloquent\Builder;
 
 class Customer extends Model
 {
@@ -27,13 +28,23 @@ class Customer extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id')->whereNull('deleted_at');
     }
 
     public function getDisplayNameAttribute()
     {
         return $this->user->first_name . ' ' . $this->user->last_name;
     }
+
+    protected static function booted()
+    {
+        static::addGlobalScope('withNonDeletedUsers', function (Builder $builder) {
+            $builder->whereHas('user', function (Builder $query) {
+                $query->whereNull('deleted_at');
+            });
+        });
+    }
+
 
     protected static function boot()
     {

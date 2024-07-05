@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CustomerResource\Pages;
 use App\Filament\Resources\CustomerResource\RelationManagers;
 use App\Models\Customer;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -35,9 +36,8 @@ class CustomerResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Placeholder::make('user_full_name')
-                ->label('Customer Name')
-                ->content(fn ($record) => $record->user->first_name . ' ' . $record->user->last_name)
+                Forms\Components\Placeholder::make('user.display_name')
+                ->label('User')
                 ->columnSpanFull(),
 
                 Forms\Components\TextInput::make('business_name'),
@@ -52,8 +52,7 @@ class CustomerResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.first_name')->label('Customer first name'),
-                Tables\Columns\TextColumn::make('user.last_name')->label('Customer last name'),
+                Tables\Columns\TextColumn::make('user.display_name')->label('User'),
                 Tables\Columns\TextColumn::make('business_name'),
                 Tables\Columns\TextColumn::make('customer_type'),
 

@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\FileUpload;
+use App\Filament\Tables\Actions\SendMessageBulkAction;
 
 class UserResource extends Resource
 {
@@ -92,6 +93,8 @@ class UserResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    SendMessageBulkAction::make('send_message'),
+
                 ]),
             ]);
     }

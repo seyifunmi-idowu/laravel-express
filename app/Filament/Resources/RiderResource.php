@@ -24,23 +24,37 @@ class RiderResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Select::make('action')
+                ->options([
+                    'APPROVE_RIDER' => 'Approve rider',
+                    'DISAPPROVE_RIDER' => 'Disapprove rider',
+                    'SUSPEND_RIDER' => 'Suspend rider',
+                ])
+                ->required(),
+                Forms\Components\Textarea::make('action_reason')
+                ->label('Reason for action')
+                ->helperText('Please provide the reason for approving, disapproving, or suspending the rider.')
+                ->requiredWith('action'),
+
                 Forms\Components\Placeholder::make('user_full_name')
                     ->label('Rider Name')
                     ->content(fn ($record) => $record->user->first_name . ' ' . $record->user->last_name)
                     ->columnSpanFull(),
                 Forms\Components\Placeholder::make('vehicle_name')
                     ->label('Vehicle')
-                    ->content(fn ($record) => $record->vehicle->name),
+                    ->content(fn ($record) => $record->vehicle ? $record->vehicle->name : 'N/A'),
     
                 Forms\Components\TextInput::make('status'),
                 Forms\Components\TextInput::make('vehicle_make'),
                 Forms\Components\TextInput::make('vehicle_model'),
                 Forms\Components\TextInput::make('vehicle_plate_number'),
                 Forms\Components\TextInput::make('vehicle_color'),
+                Forms\Components\TextInput::make('vehicle_type'),
                 Forms\Components\TextInput::make('city'),
                 Forms\Components\TextInput::make('avatar_url'),
                 Forms\Components\Textarea::make('rider_info'),
                 Forms\Components\Toggle::make('on_duty'),
+
             ]);
     }
 
@@ -51,7 +65,7 @@ class RiderResource extends Resource
                 Tables\Columns\TextColumn::make('user.first_name')->label('Rider first name'),
                 Tables\Columns\TextColumn::make('vehicle.name')->label('Vehicle name'),
                 Tables\Columns\TextColumn::make('vehicle_type'),
-                Tables\Columns\ToggleColumn::make('on_duty'),
+                Tables\Columns\ToggleColumn::make('on_duty')->disabled(),
                 ImageColumn::make('avatar_url')->circular()
 
             ])

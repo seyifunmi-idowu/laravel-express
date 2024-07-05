@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\OrderResource\Pages;
 // use App\Filament\Resources\OrderResource\RelationManagers\OrderTimelineRelationManager;
 use App\Models\Order;
+use App\Models\OrderTimeline;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,6 +14,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Resources\RelationManager;
+use App\Filament\Resources\OrderResource\RelationManagers\OrderTimelineRelationManager;
 
 class OrderResource extends Resource
 {
@@ -31,15 +33,15 @@ class OrderResource extends Resource
             ->schema([
             Forms\Components\Placeholder::make('customer_full_name')
                 ->label('Customer Name')
-                ->content(fn ($record) => $record->customer->user->first_name . ' ' . $record->customer->user->last_name)
+                ->content(fn ($record) => $record->customer ? $record->customer->display_name : 'N/A')
                 ->columnSpanFull(),
                 Forms\Components\Placeholder::make('rider_full_name')
                 ->label('Rider Name')
-                ->content(fn ($record) => $record->rider ? $record->rider->user->first_name . ' ' . $record->rider->user->last_name : 'N/A')
+                ->content(fn ($record) => $record->rider ? $record->rider->display_name : 'N/A')
                 ->columnSpanFull(),
             Forms\Components\Placeholder::make('business_name')
                 ->label('Business Name')
-                ->content(fn ($record) => $record->business ? $record->business->business_name : 'N/A')
+                ->content(fn ($record) => $record->business ? $record->business->display_name : 'N/A')
                 ->columnSpanFull(),
             Forms\Components\Placeholder::make('vehicle_name')
                 ->label('Vehicle')
@@ -79,8 +81,24 @@ class OrderResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('order_id'),
-                Tables\Columns\TextColumn::make('status'),
-                Tables\Columns\TextColumn::make('customer.user.first_name'),
+                Tables\Columns\TextColumn::make('status')->color(fn (string $state): string => match ($state) {
+                    'PENDING' => 'gray',
+                    'PROCESSING_ORDER' => 'gray',
+                    'PENDING_RIDER_CONFIRMATION' => 'info',
+                    'RIDER_ACCEPTED_ORDER' => 'info',
+                    'RIDER_AT_PICK_UP' => 'info',
+                    'RIDER_PICKED_UP_ORDER' => 'info',
+                    'ORDER_ARRIVED' => 'success',
+                    'ORDER_DELIVERED' => 'success',
+                    'ORDER_COMPLETED' => 'success',
+                    'ORDER_CANCELLED' => 'warning',
+                    default => 'gray',
+                }),
+                Tables\Columns\TextColumn::make('customer.display_name'),
+                Tables\Columns\TextColumn::make('business.display_name'),
+                Tables\Columns\TextColumn::make('rider.display_name'),
+                // Tables\Columns\TextColumn::make('user.first_name')->label('Customer first name'),
+
             ])
             ->filters([
                 //
@@ -98,9 +116,7 @@ class OrderResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // HasManyRelationManager::make('comments')
-            //     ->relationship('comments')
-            //     ->resource(CommentResource::class),
+            OrderTimelineRelationManager::class,
         ];
     }
 

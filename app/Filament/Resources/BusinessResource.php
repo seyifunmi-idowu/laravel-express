@@ -44,17 +44,17 @@ class BusinessResource extends Resource
                 Forms\Components\TextInput::make('business_address'),
                 Forms\Components\TextInput::make('business_category'),
                 Forms\Components\TextInput::make('delivery_volume'), 
+                Forms\Components\TextInput::make('webhook_url'), 
             ]);
     }
-
+    
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.first_name')->label('Customer first name'),
-                Tables\Columns\TextColumn::make('user.last_name')->label('Customer last name'),
+                Tables\Columns\TextColumn::make('user.display_name')->label('User'),
                 Tables\Columns\TextColumn::make('business_name'),
-                Tables\Columns\TextColumn::make('customer_type'),
+                Tables\Columns\TextColumn::make('business_type'),
             ])
             ->filters([
                 //

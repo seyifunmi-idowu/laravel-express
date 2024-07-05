@@ -96,7 +96,7 @@ class User extends Authenticatable implements JWTSubject, FilamentUser, HasName
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->is_superuser;
+        return $this->is_superuser ?? $this->is_staff;
     }
 
     public function getJWTIdentifier()
@@ -114,6 +114,10 @@ class User extends Authenticatable implements JWTSubject, FilamentUser, HasName
         return [];
     }
 
+    public function getDisplayNameAttribute()
+    {
+        return $this->first_name . ' ' . $this->last_name;
+    }
     
 
 }

@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\RiderCommissionResource\Pages;
 use App\Filament\Resources\RiderCommissionResource\RelationManagers;
-use App\Models\RiderCommission;
+use App\Models\Commission;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class RiderCommissionResource extends Resource
 {
-    protected static ?string $model = RiderCommission::class;
+    protected static ?string $model = Commission::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -23,7 +23,9 @@ class RiderCommissionResource extends Resource
     {
         return $form
             ->schema([
-                //
+                Forms\Components\TextInput::make('name'),
+                Forms\Components\TextInput::make('note'),
+                Forms\Components\TextInput::make('commission'),
             ]);
     }
 
@@ -31,7 +33,9 @@ class RiderCommissionResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('name'),
+                // Tables\Columns\TextColumn::make('note'),
+                Tables\Columns\TextColumn::make('commission'),
             ])
             ->filters([
                 //

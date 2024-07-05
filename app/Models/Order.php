@@ -84,6 +84,11 @@ class Order extends Model
         return $this->hasMany(OrderTimeline::class);
     }
 
+    public function order_timeline()
+    {
+        return $this->hasMany(OrderTimeline::class);
+    }
+
 
     public function isCustomerOrder()
     {
