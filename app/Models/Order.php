@@ -114,6 +114,28 @@ class Order extends Model
         return $orderTimeline ? $orderTimeline->created_at->format('Y-m-d H:i:s') : null;
     }
 
+    public function getOrderProgress()
+    {
+        $status_mapper = [
+            "PENDING"=> 2,
+            "PROCESSING_ORDER"=> 4,
+            "PENDING_RIDER_CONFIRMATION"=> 6,
+            "RIDER_ACCEPTED_ORDER"=> 10,
+            "RIDER_AT_PICK_UP"=> 15,
+            "RIDER_PICKED_UP_ORDER"=> 20,
+            "ORDER_ARRIVED"=> 80,
+            "ORDER_DELIVERED"=> 95,
+            "ORDER_COMPLETED"=> 100,
+            "ORDER_CANCELLED"=> 0
+        ];
+        
+        return $status_mapper[$this->status];
+    }
+
+    public function getStatusDisplay()
+    {
+        return ucwords(str_replace('_', ' ', $this->status));
+    }
 
     protected static function boot()
     {

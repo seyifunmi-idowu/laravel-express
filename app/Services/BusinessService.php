@@ -12,6 +12,11 @@ use App\Http\Resources\RetrieveCustomerResource;
 use App\Models\User;
 use App\Models\Transaction;
 use App\Helpers\S3Uploader;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
+use App\Models\Order;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class BusinessService
 {
@@ -33,7 +38,7 @@ class BusinessService
         return $business;
     }
 
-    public function getBusiness($user)
+    public function getBusiness(User $user)
     {
         $business = Business::where('user_id', $user->id);
         if (!$business) {
@@ -47,41 +52,7 @@ class BusinessService
         $business = $this->getBusiness($user);
         $business->webhook_url = $request->webhook_url;
         $business->save();
-    }
-
-    // public static function initiateTransaction($user, $amount, $callbackUrl)
-    // {
-    //     $transactionObj = TransactionService::getTransaction([
-    //         'user_id' => $user->id,
-    //         'amount' => $amount,
-    //         'transaction_type' => 'CREDIT',
-    //         'transaction_status' => 'PENDING',
-    //         'pssp' => 'PAYSTACK',
-    //     ])->first();
-
-    //     if ($transactionObj) {
-    //         $authorizationUrl = $transactionObj->pssp_meta_data['authorization_url'];
-    //         return $authorizationUrl;
-    //     }
-    //     $paystackService = new PaystackService();
-    //     $paystackResponse = $paystackService->initializePayment($user->email, $amount, $callbackUrl);
-    //     $authorizationUrl = $paystackResponse['data']['authorization_url'];
-    //     $reference = $paystackResponse['data']['reference'];
-
-    //     $transactionObj = Transaction::create([
-    //         'transaction_type' => 'CREDIT',
-    //         'transaction_status' => 'PENDING',
-    //         'amount' => $amount,
-    //         'user_id' => $user->id,
-    //         'reference' => $reference,
-    //         'pssp' => 'PAYSTACK',
-    //         'payment_category' => 'FUND_WALLET',
-    //         'pssp_meta_data' => json_encode($paystackResponse['data']),
-    //         'currency' => "₦",
-    //     ]);
-
-    //     return $authorizationUrl;
-    // }
+    }   
 
     public function getBusinessUserSecretKey($user)
     {
@@ -94,104 +65,142 @@ class BusinessService
     }
    
     
-    // public function completeSignup($request){
-    //     $session_token = $request->session_token;
-    //     $business_name = $request->business_name;
-    //     $business_address = $request->business_address;
-    //     $business_category = $request->business_category;
-    //     $delivery_volume = $request->delivery_volume ?? "";
+    public function registerBusinessUser(array $data)
+    {
+        $data = collect($data);
+        $email = $data->get('email');
+        $phone_number = $data->get('phone_number');
+        $business_name = $data->get('business_name');
+        $password = $data->pull('password');
 
-    //     $sessionToken = OTPVerification::where('otp', $session_token)->first();
-    //     if (!$sessionToken) {
-    //         throw new CustomAPIException('Invalid session token', 401);
-    //     }
-    //     $email = $sessionToken->email;
-    //     $phone_number = $sessionToken->phone_number;
-    //     $user = $this->userService->getUser($phone_number, $email);
+        DB::transaction(function () use ($email, $phone_number, $business_name, $password) {
+            $instance_user = $this->userService->createUser([
+                'email' => $email,
+                'first_name' => $business_name,
+                'phone_number' => $phone_number,
+                'user_type' => 'BUSINESS',
+                'password' => $password,
+                'referral_code' => null,
+            ]);
+
+            $this->createBusiness($instance_user, [
+                'business_name' => $business_name,
+            ]);
+
+            $this->authService->initiateEmailVerification($email);
+        });
+
+        return [];
+    }
+
+    public function loginBusinessUser(array $data)
+    {
+        $email = $data['email'];
+        $password = $data['password'];
+        try{
+            $user = $this->userService->authenticateUser($email, $password);       
+        } catch(CustomAPIException $e){
+            Session::flash('error', $e->getMessage());
+            return false;
+        }
+        if ($user->user_type != "BUSINESS"){
+            Auth::logout();
+            return false;
+        }
+        $credentials = ['email' => $email, 'password' => $password];
+        Auth::guard('web')->attempt($credentials);
+        // Auth::login($user);
+
+        $user->last_login = now();
+        $user->save();
+        return true;
+    }
+
+    public static function verifyBusinessUserEmail($request, array $data)
+    {
+        $user = UserService::getUserInstance(['email' => $data['email']]);
+        if (!$user) {
+            Session::flash('error', 'User not found.');
+            return;
+        }
+
+        try {
+            AuthService::validateEmailVerification($data['email'], $data['code']);
+            Auth::login($user);
+            $user->last_login = now();
+            $user->save();
+        } catch (CustomAPIException $e) {
+            Session::flash('error', $e->getMessage());
+        } catch (CustomFieldValidationException $e) {
+            Session::flash('error', $e->getErrors()['code'][0]);
+        }
+    }
+
+    public function getBusinessDashboardView($user)
+    {
+        $today = Carbon::today();
+        $business = $this->getBusiness($user);
+
+        // Fetch orders related to the business user
+        $orders = Order::where('business_id', $business->id)->orderBy('created_at', 'desc')->with('rider')->take(10)->get();
+        $totalOrders = Order::where('business_id', $business->id)->orderBy('created_at', 'desc')->count();
+        $todayOrders = Order::where('business_id', $business->id)->whereDate('created_at', $today)->count();        
+        $walletBalance = $user->wallet->balance;
         
-    //     $customer = Customer::where("user_id", $user->id)->first();
-    //     if ($customer->customer_type != "BUSINESS"){
-    //         throw new CustomAPIException('User not a business customer.', 401);
-    //     }
-    //     $customer->business_name = $business_name;
-    //     $customer->business_address = $business_address;
-    //     $customer->business_category = $business_category;
-    //     $customer->delivery_volume = $delivery_volume;
-    //     $customer->save();
+        $transactions = Transaction::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
+        
+        $data = [
+            'orders' => $orders,
+            'total_orders' => $totalOrders,
+            'today_orders' => $todayOrders,
+            'wallet_balance' => $walletBalance,
+            'transactions' => $transactions,
+        ];
+        
+        return $data;
+    }
 
-    //     $sessionToken->delete();
-    //     return true;
-    // }
+    public function getBusinessOrderView($user)
+    {
+        $business = $this->getBusiness($user);
+        $orders = Order::where('business_id', $business->id)->orderBy('created_at', 'desc')->with('rider')->take(10)->get();
+        
+        $data = [
+            'orders' => $orders,
+        ];
+        
+        return $data;
+    }
 
-    // public function login($request)
-    // {
-    //     $user = $this->userService->authenticateUser($request->get('email'), $request->get('password'));            
-    //     $token = Auth::login($user);
-    //     $customer = $this->getCustomer($user);
-    //     return [
-    //         "customer" => new RetrieveCustomerResource($customer),
-    //         "token" => ["access" => $token],
-    //     ];
-    // }
+    public function getBusinessGetOrderView($user, $order_id)
+    {
+        $business = $this->getBusiness($user);
+        $order = Order::where(['id'=> $order_id, 'business_id'=> $business->id])->first();
+        $data = [
+            'order' => $order,
+            "distance"=> $this->getKmInWord($order->distance),
+            "duration" => $this->getTimeInWord($order->duration)
+        ];
+        
+        return $data;
+    }
 
-    // public function getCustomerFavouriteRider($user)
-    // {
-    //     $customer = $this->getCustomer($user);
-    //     return FavoriteRider::where('customer_id', $customer->id)->get();
-    // }
-    
-    // public function completeBusinessCustomerSignup($request, $user){
-    //     $business_name = $request->business_name;
-    //     $business_address = $request->business_address;
-    //     $business_category = $request->business_category;
-    //     $delivery_volume = $request->delivery_volume ?? "";
+    public function getKmInWord(int $distanceInMeters): string
+    {
+        $distanceInKm = $distanceInMeters / 1000;
+        $formattedDistance = number_format($distanceInKm, 1);
+        return "{$formattedDistance} km";
+    }
 
-    //     $customer = $this->getCustomer($user);
-    //     if ($customer->customer_type != "BUSINESS"){
-    //         throw new CustomAPIException('User not a business customer.', 401);
-    //     }
-    //     $customer->business_name = $business_name;
-    //     $customer->business_address = $business_address;
-    //     $customer->business_category = $business_category;
-    //     $customer->delivery_volume = $delivery_volume;
-    //     $customer->save();
-
-    //     return true;
-    // }
-
-    // public function updateProfile($request, User $user)
-    // {
-    //     $data = $request->only(['first_name', 'last_name', 'email', 'phone_number']);
-
-    //     $avatarFile = $request->file('avatar');
-    //     if ($avatarFile) {
-    //         $s3Uploader = new S3Uploader('/available-vehicles');
-    //         if ($user->avatar_url){
-    //             $s3Uploader->hardDeleteObject($user->avatar_url);
-    //         }
-    //         $keyname = 'avatars/{$user->id}/' . $avatarFile->getClientOriginalName();    
-    //         $fileUrl = $s3Uploader->uploadFileObject($avatarFile, $keyname);
-    //         $user->avatar_url = $fileUrl;
-    //     }
-
-    //     if (!empty($data['first_name'])) {
-    //         $user->first_name = $data['first_name'];
-    //     }
-    //     if (!empty($data['last_name'])) {
-    //         $user->last_name = $data['last_name'];
-    //     }
-    //     if (!empty($data['email'])) {
-    //         $user->email = $data['email'];
-    //         $user->email_verified_at = false;
-    //     }
-    //     if (!empty($data['phone_number'])) {
-    //         $user->phone_number = $data['phone_number'];
-    //         $user->phone_verified_at = false;
-    //     }
-
-    //     $user->save();
-    //     return $user;
-    // }
+    public function getTimeInWord(int $timeInSeconds): string
+    {
+        $timeInMinutes = $timeInSeconds / 60;
+        $formattedTime = number_format($timeInMinutes, 0);
+        return "{$formattedTime} mins";
+    }
 
 
 }

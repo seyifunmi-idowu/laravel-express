@@ -10,7 +10,7 @@ use App\Models\ReferralUser;
 use App\Helpers\PasswordManager;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\Log;
 
 class UserService
 {
@@ -100,7 +100,7 @@ class UserService
         if (!$user) {
             throw new CustomAPIException('Invalid credentials', 401);
         }
-        if (!$user->new_pass){
+        if (!$user->new_pass || $user->new_pass == false){
             if (!$user || !PasswordManager::verifyPassword($password, $user->password)) {
                 throw new CustomAPIException('Invalid credentials', 401);
             }
