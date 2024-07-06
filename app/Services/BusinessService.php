@@ -20,6 +20,7 @@ use App\Models\Card;
 use App\Models\BankAccount;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class BusinessService
 {
@@ -69,8 +70,19 @@ class BusinessService
         $encryptedAccessToken = $business->e_secret_key;
         return EncryptionClass::decryptData($encryptedAccessToken);
     }
+
+    public function generateBusinessSecretKey($user)
+    {    
+        $business = $this->getBusiness($user);
+        // Auth::logout($this->getBusinessUserSecretKey($user));
+        JWTAuth::invalidate($this->getBusinessUserSecretKey($user));
+        $token = Auth::login($user);
+        $encryptedToken = EncryptionClass::encryptData($token);
+        $business->e_secret_key = $encryptedToken;
+        $business->save();
+        return true;
+    }
    
-    
     public function registerBusinessUser(array $data)
     {
         $data = collect($data);
@@ -233,7 +245,7 @@ class BusinessService
         return $data;
     }
 
-    public function initiateBusinessTransaction($user, $amount = 100, $callbackUrl=null)
+    public function initiateBusinessTransaction($user, $amount = 100, $callbackUrl)
     {
         $transaction = Transaction::where([
             'user_id' => $user->id,

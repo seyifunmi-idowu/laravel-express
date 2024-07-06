@@ -41,7 +41,7 @@ Route::get('business/paystack/callback', [BusinessController::class, 'verifyBusi
 Route::get('business/settings', [BusinessController::class, 'settings'])->name('business-settings');
 Route::post('business/update-webhook', [BusinessController::class, 'updateWebhook'])->name('business-update-webhook');
 
-Route::post('business/regenerate-secret-key', [BusinessController::class, 'regenerateSecretKey'])->name('business-regenerate-secret-key');
+Route::get('business/regenerate-secret-key', [BusinessController::class, 'regenerateSecretKey'])->name('business-regenerate-secret-key');
 
 // API DOCS
 Route::get('business/api/docs', [BusinessController::class, 'docsIndex'])->name('business-api-docs');

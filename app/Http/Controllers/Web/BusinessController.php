@@ -231,27 +231,14 @@ class BusinessController extends Controller
         $business = $this->businessService->getBusiness($user);
         $business->webhook_url = $request->webhook_url;
         $business->save();
-        return  Redirect::route('business-settings');
+        return Redirect::route('business-settings');
     }
 
     public function regenerateSecretKey(Request $request)
     {
         $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
-        $response = $this->businessService->getBusinessSettingsView($user);
-        $error = null;
-        try{
-            $request->validate([
-                'webhook_url' => 'required|int|min:1000',
-            ]);
-        } catch (ValidationException $e) {
-            $errors =$e->errors();
-            $message  = collect($errors)->unique()->first();
-            $error = $message[0];
-
-            return Redirect::route('business-wallet');
-        }
-
-        return view('app.settings', ['view' => 'Settings', "error" => $error] + $response);
+        $this->businessService->generateBusinessSecretKey($user);
+        return Redirect::route('business-settings');
     }
 
     public function docsIndex(Request $request)
