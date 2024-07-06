@@ -15,6 +15,9 @@ use App\Helpers\S3Uploader;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use App\Models\Order;
+use App\Models\Wallet;
+use App\Models\Card;
+use App\Models\BankAccount;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -22,14 +25,17 @@ class BusinessService
 {
     protected UserService $userService;
     protected AuthService $authService;
+    protected PaystackService $paystackService;
 
     public function __construct(
         UserService $userService,
-        AuthService $authService
+        AuthService $authService,
+        PaystackService $paystackService
     )
     {
         $this->userService = $userService;
         $this->authService = $authService;
+        $this->paystackService = $paystackService;
     }
 
     public function createBusiness($user, $data){
@@ -179,10 +185,16 @@ class BusinessService
     {
         $business = $this->getBusiness($user);
         $order = Order::where(['id'=> $order_id, 'business_id'=> $business->id])->first();
+        $distanceInKm = $order->distance / 1000;
+        $formattedDistance = number_format($distanceInKm, 1);
+
+        $timeInMinutes = $order->duration / 60;
+        $formattedTime = number_format($timeInMinutes, 0);
+
         $data = [
             'order' => $order,
-            "distance"=> $this->getKmInWord($order->distance),
-            "duration" => $this->getTimeInWord($order->duration)
+            "distance"=>  "{$formattedDistance} km",
+            "duration" => "{$formattedTime} mins",
         ];
         
         return $data;
@@ -200,6 +212,61 @@ class BusinessService
         $timeInMinutes = $timeInSeconds / 60;
         $formattedTime = number_format($timeInMinutes, 0);
         return "{$formattedTime} mins";
+    }
+
+    public function getBusinessWalletView($user)
+    {
+        $walletBalance = $user->wallet->balance;        
+        $bankAccounts = BankAccount::where('user_id', $user->id)->get();
+        $cards = Card::where('user_id', $user->id)->get();
+        $transactions = Transaction::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        $data = [
+            'cards' => $cards,
+            'bankAccounts' => $bankAccounts,
+            'wallet_balance' => $walletBalance,
+            'transactions' => $transactions,
+        ];
+        
+        return $data;
+    }
+
+    public function initiateBusinessTransaction($user, $amount = 100, $callbackUrl)
+    {
+        $transaction = Transaction::where([
+            'user_id' => $user->id,
+            'amount' => $amount,
+            'transaction_type' => 'CREDIT',
+            'transaction_status' => 'PENDING',
+            'pssp' => 'PAYSTACK',
+        ])->first();
+
+        if ($transaction) {
+            $authorizationUrl = $transaction->pssp_meta_data['authorization_url'];
+            return $authorizationUrl;
+        }
+
+        $paystackResponse = $this->paystackService->initializePayment($user->email, $amount, "NGN", $callbackUrl);
+        $authorizationUrl = $paystackResponse['data']['authorization_url'];
+        $reference = $paystackResponse['data']['reference'];
+
+        $transactionData = [
+            'transaction_type' => 'CREDIT',
+            'transaction_status' => 'PENDING',
+            'amount' => $amount,
+            'user_id' => $user->id,
+            'reference' => $reference,
+            'pssp' => 'PAYSTACK',
+            'payment_category' => 'FUND_WALLET',
+            'pssp_meta_data' => $paystackResponse['data'],
+            'currency' => "₦",
+        ];
+
+        Transaction::create($transactionData);
+
+        return $authorizationUrl;
     }
 
 

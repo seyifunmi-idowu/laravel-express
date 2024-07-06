@@ -14,23 +14,31 @@ use App\Http\Requests\LoginFormRequest;
 use App\Http\Requests\BusinessRegistrationRequest;
 use App\Http\Requests\VerifyEmailRequest;
 use App\Http\Controllers\Controller;
+use App\Services\WalletService;
+use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\ValidationException;
 
 class BusinessController extends Controller
 {
     protected BusinessService $businessService;
     protected AuthService $authService;
     protected UserService $userService;
+    protected WalletService $walletService;
 
     public function __construct(
         BusinessService $businessService, 
         AuthService $authService,
-        UserService $userService
+        UserService $userService,
+        WalletService $walletService
     )
     {
         $this->businessService = $businessService;
         $this->authService = $authService;
         $this->userService = $userService;
+        $this->walletService = $walletService;
     }
 
 
@@ -129,5 +137,79 @@ class BusinessController extends Controller
 
         return view('app.view_order', ['view' => 'Order'] + $response);
     }
+
+    public function wallet(Request $request)
+    {
+        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $response = $this->businessService->getBusinessWalletView($user);
+        $transactions = collect($response['transactions']);
+        unset($response['transactions']);
+
+        $page = $request->get('page', 1);
+        $perPage = 10;
+        $transactions = new LengthAwarePaginator(
+            $transactions->forPage($page, $perPage),
+            $transactions->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return view('app.wallet', ['view' => 'Order', 'transactions' => $transactions] +  $response);
+    }
+
+    public function fundWallet(Request $request)
+    {
+        try{
+            $request->validate([
+                'amount' => 'required|int|min:1000',
+            ]);
+        } catch (ValidationException $e) {
+            return Redirect::route('business-wallet');
+        }
+
+        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+
+        if ($request->isMethod('post')) {
+            $callbackUrl = URL::route('business-verify-card-transaction');
+            $responseUrl = $this->businessService->initiateBusinessTransaction(
+                $user,
+                $request->input('amount'),
+                $callbackUrl
+            );
+            return Redirect::to($responseUrl);
+        }
+
+        return Redirect::route('business-wallet');
+    }
+
+    public function verifyBusinessCardTransaction(Request $request)
+    {
+        try{
+            $this->walletService->verifyCardTransaction($request->query());
+        } catch(Exception $e){
+        
+        }
+        return Redirect::route('business-wallet');
+    }
+
+    public function deleteCard(Request $request, $card_id)
+    {
+        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $card = $this->walletService->getUserCards($user);
+
+        if (!$card) {
+            return Redirect::route('business-wallet');
+        }
+        $card->delete();
+        return Redirect::route('business-wallet');
+    }
+
+    public function docsIndex(Request $request)
+    {
+        return view('app.docs', ["base_url"=> "api.feleexpress.com"]);
+    }
+
+
 
 }

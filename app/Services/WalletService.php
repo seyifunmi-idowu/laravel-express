@@ -206,8 +206,8 @@ class WalletService
 
     public function initiateCardTransaction($user, $amount = 100)
     {
-        $baseUrl = config('constants.BASE_URL');
-        $callbackUrl = "{$baseUrl}api/v1/paystack/paystack/callback";
+        // $baseUrl = config('constants.BASE_URL');
+        // $callbackUrl = "{$baseUrl}api/v1/paystack/paystack/callback";
 
         $transaction = Transaction::where([
             'user_id' => $user->id,
@@ -222,7 +222,7 @@ class WalletService
             return ['url' => $authorizationUrl];
         }
 
-        $paystackResponse = $this->paystackService->initializePayment($user->email, $amount, "NGN", $callbackUrl);
+        $paystackResponse = $this->paystackService->initializePayment($user->email, $amount, "NGN");
         $authorizationUrl = $paystackResponse['data']['authorization_url'];
         $reference = $paystackResponse['data']['reference'];
 
@@ -278,18 +278,19 @@ class WalletService
                     ->first();
 
                 if (!$card) {
-                    Card::create($user, [
+                    Card::create([
+                        'user_id' => $user->id,
                         'card_type' => $responseData['authorization']['card_type'],
                         'card_auth' => $responseData['authorization']['authorization_code'],
                         'last_4' => $responseData['authorization']['last4'],
                         'exp_month' => $responseData['authorization']['exp_month'],
                         'exp_year' => $responseData['authorization']['exp_year'],
-                        'country_code' => $responseData['authorization']['country_code'],
-                        'brand' => $responseData['authorization']['brand'],
-                        'reusable' => $responseData['authorization']['reusable'],
-                        'first_name' => $responseData['customer']['first_name'],
-                        'last_name' => $responseData['customer']['last_name'],
-                        'customer_code' => $responseData['customer']['customer_code'],
+                        'country_code' => $responseData['authorization']['country_code'] ?? null,
+                        'brand' => $responseData['authorization']['brand'] ?? null,
+                        'reusable' => $responseData['authorization']['reusable'] ?? null,
+                        'first_name' => $responseData['customer']['first_name'] ?? null,
+                        'last_name' => $responseData['customer']['last_name'] ?? null,
+                        'customer_code' => $responseData['customer']['customer_code'] ?? null,
                     ]);
                 }
             }
