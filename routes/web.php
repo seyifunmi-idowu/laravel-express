@@ -32,13 +32,14 @@ Route::post('/business/logout', [BusinessController::class, 'logout'])->name('bu
 Route::get('business/order', [BusinessController::class, 'order'])->name('business-order');
 Route::get('business/order/{order_id}', [BusinessController::class, 'get_order'])->name('business-view-order');
 
-Route::get('wallet', [BusinessController::class, 'wallet'])->name('business-wallet');
-Route::post('fund-wallet', [BusinessController::class, 'fundWallet'])->name('business-fund-wallet');
+Route::get('business/wallet', [BusinessController::class, 'wallet'])->name('business-wallet');
+Route::post('business/fund-wallet', [BusinessController::class, 'fundWallet'])->name('business-fund-wallet');
+Route::get('business/card/{card_id}/delete', [BusinessController::class, 'deleteCard'])->name('business-delete-card');
 
 Route::get('business/paystack/callback', [BusinessController::class, 'verifyBusinessCardTransaction'])->name('business-verify-card-transaction');
 
 Route::get('business/settings', [BusinessController::class, 'settings'])->name('business-settings');
-Route::get('business/card/{card_id}/delete', [BusinessController::class, 'deleteCard'])->name('business-delete-card');
+Route::post('business/update-webhook', [BusinessController::class, 'updateWebhook'])->name('business-update-webhook');
 
 Route::post('business/regenerate-secret-key', [BusinessController::class, 'regenerateSecretKey'])->name('business-regenerate-secret-key');
 

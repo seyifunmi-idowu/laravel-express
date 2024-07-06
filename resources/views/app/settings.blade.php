@@ -1,6 +1,6 @@
-{% extends 'app/base.html' %}
+@extends('app.base')
 
-{% block content %}
+@section('content')
 
     <div class="row">
         <div class="col-12 col-xl-12">
@@ -66,23 +66,21 @@
                 <label class="form-check-label" for="secretKey">
                   Secret key
                 </label>
-                  <input id="secretKey" type="password" class="form-control" value="{{ secret_key }}" readonly>
+                  <input id="secretKey" type="password" class="form-control" value="{{ $secret_key }}" readonly>
                     <span id="toggleVisibility" class="fa fa-eye" style="cursor: pointer;"></span>
-                <p class="text-sm mt-3 mb-0"><a href="{% url 'business-regenerate-secret-key' %}" class="text-dark font-weight-bolder">Generate a new secret key</a></p>
+                <p class="text-sm mt-3 mb-0"><a href="{{ route('business-regenerate-secret-key') }}" class="text-dark font-weight-bolder">Generate a new secret key</a></p>
 
               </div>
 
-                <form method="post" role="form text-left">
-                  {% csrf_token %}
+                <form method="post" action="{{ route('business-update-webhook') }}" role="form text-left">
+                  @csrf
                   <div class="mb-3">
                    <label class="form-check-label" for="webhookUrl">
                       Webhook url
                     </label>
-                     <input id="webhookUrl" type="text" class="form-control" placeholder="https://example.com/webhook-url"  name="webhook_url" {% if current_webhook_url %} value="{{ current_webhook_url }}"{% endif %}>
-                    {% for error in form.webhook_url.errors %}
-                      <span class="text-danger error-message">{{ error }}</span>
-                  {% endfor %}
-                  </div>
+                     <input id="webhookUrl" type="text" class="form-control" placeholder="https://example.com/webhook-url"  name="webhook_url" @if( $current_webhook_url ) value="{{ $current_webhook_url }}" @endif>
+                     @if( $error ) <span class="text-danger error-message"> {{ $error }} </span> @endif
+                    </div>
                   <div class="text-center">
                     <button type="submit" class="btn bg-gradient-dark w-100 my-4 mb-2">Change webhook url</button>
                   </div>
@@ -105,4 +103,4 @@
 </script>
 
 
-{% endblock %}
+@endsection

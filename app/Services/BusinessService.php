@@ -233,7 +233,7 @@ class BusinessService
         return $data;
     }
 
-    public function initiateBusinessTransaction($user, $amount = 100, $callbackUrl)
+    public function initiateBusinessTransaction($user, $amount = 100, $callbackUrl=null)
     {
         $transaction = Transaction::where([
             'user_id' => $user->id,
@@ -267,6 +267,18 @@ class BusinessService
         Transaction::create($transactionData);
 
         return $authorizationUrl;
+    }
+
+    public function getBusinessSettingsView($user)
+    {
+        $business = $this->getBusiness($user);
+        
+        $data = [
+            'secret_key' => $this->getBusinessUserSecretKey($user),
+            'current_webhook_url' => $business->webhook_url,
+        ];
+        
+        return $data;
     }
 
 

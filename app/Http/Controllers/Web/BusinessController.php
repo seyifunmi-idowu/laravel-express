@@ -204,6 +204,55 @@ class BusinessController extends Controller
         $card->delete();
         return Redirect::route('business-wallet');
     }
+    public function settings(Request $request)
+    {
+        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $response = $this->businessService->getBusinessSettingsView($user);    
+        $error = session('error') ?? null;    
+
+        return view('app.settings', ['view' => 'Settings', "error" => $error] + $response);
+    }
+
+    public function updateWebhook(Request $request)
+    {
+        $error = null;
+        try{
+            $request->validate([
+                'webhook_url' => 'required',
+            ]);
+        } catch (ValidationException $e) {
+            $errors =$e->errors();
+            $message  = collect($errors)->unique()->first();
+            $error = $message[0];
+            return Redirect::route('business-settings')->with('error', $error);
+        }
+
+        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $business = $this->businessService->getBusiness($user);
+        $business->webhook_url = $request->webhook_url;
+        $business->save();
+        return  Redirect::route('business-settings');
+    }
+
+    public function regenerateSecretKey(Request $request)
+    {
+        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $response = $this->businessService->getBusinessSettingsView($user);
+        $error = null;
+        try{
+            $request->validate([
+                'webhook_url' => 'required|int|min:1000',
+            ]);
+        } catch (ValidationException $e) {
+            $errors =$e->errors();
+            $message  = collect($errors)->unique()->first();
+            $error = $message[0];
+
+            return Redirect::route('business-wallet');
+        }
+
+        return view('app.settings', ['view' => 'Settings', "error" => $error] + $response);
+    }
 
     public function docsIndex(Request $request)
     {
