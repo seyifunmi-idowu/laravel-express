@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\BusinessController;
+use App\Livewire\Auth\CustomLogin;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,6 +18,7 @@ use App\Http\Controllers\Web\BusinessController;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('/admin/login', CustomLogin::class)->name('filament.admin.auth.login');
 
 
 Route::get('/business/login', [BusinessController::class, 'showLoginForm'])->name('business-login');
