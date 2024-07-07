@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-{% load static %}
 <html lang="en">
 
 <head>
@@ -11,18 +10,14 @@
         Fele Express - Business
     </title>
     <!--     Fonts and icons     -->
-<!--    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet"/>-->
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet"/>
     <!-- Nucleo Icons -->
-    <link href="{% static 'assets/css/nucleo-icons.css' %}" rel="stylesheet"/>
-    <link href="{% static 'assets/css/nucleo-svg.css' %}" rel="stylesheet"/>
-<!--    <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>-->
+    <link href="{{ asset('assets/css/nucleo-icons.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/css/nucleo-svg.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/css/soft-ui-dashboard.css') }}?v=1.0.7" rel="stylesheet">
 
-    <link id="pagestyle" href="{% static 'assets/css/soft-ui-dashboard.css' %}?v=1.0.7" rel="stylesheet"/>
-    <style>
-        .error-message {
-            font-size: small;
-        }
-    </style>
+    <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+
 </head>
 
 <body class="">
@@ -30,14 +25,14 @@
   <nav class="navbar navbar-expand-lg position-absolute top-0 z-index-3 w-100 shadow-none my-3 navbar-transparent mt-4">
     <div class="container">
         <a class="navbar-brand m-0" href="/">
-            <img src="{% static 'assets/img/fele-logo.png' %}" class="navbar-brand-img h-100" alt="main_logo">
+            <img src="{{ asset('assets/img/fele-logo.png') }}" class="navbar-brand-img h-100" alt="main_logo">
         </a>
     </div>
   </nav>
   <!-- End Navbar -->
   <main class="main-content  mt-0">
     <section class="min-vh-100 mb-8">
-      <div class="page-header align-items-start min-vh-50 pt-5 pb-11 m-3 border-radius-lg" style="background-image: url('/static/assets/img/background.jpg');">
+      <div class="page-header align-items-start min-vh-50 pt-5 pb-11 m-3 border-radius-lg" style="background-image: url('{{ asset('assets/img/background.jpg') }}');">
         <span class="mask bg-gradient-dark opacity-6"></span>
         <div class="container">
           <div class="row justify-content-center">
@@ -56,37 +51,48 @@
                 <h5>Register</h5>
               </div>
               <div class="card-body">
-                <form method="post" role="form text-left">
-                    {% csrf_token %}
+                <form method="post" action="{{ route('business-register') }}" role="form text-left">
+                  @csrf
                     <div class="mb-3">
-                        <input type="text" class="form-control" placeholder="Business name" aria-label="Name" aria-describedby="email-addon" name="business_name" {% if form.business_name.value %} value="{{ form.business_name.value }}" {% endif %}>
-                        {% for error in form.business_name.errors %}
-                            <span class="text-danger error-message">{{ error }}</span>
-                        {% endfor %}
+                        <input type="text" class="form-control" placeholder="Business name" aria-label="Name" aria-describedby="email-addon" name="business_name" >
+                        
+                        @if ($errors->has('business_name'))
+                            @foreach ($errors->get('business_name') as $error)
+                                <span class="text-danger error-message">{{ $error }}</span>
+                            @endforeach
+                        @endif
                     </div>
                     <div class="mb-3">
-                        <input type="email" class="form-control" placeholder="Email" aria-label="Email" aria-describedby="email-addon" name="email" {% if form.email.value %} value="{{ form.email.value }}" {% endif %}>
-                        {% for error in form.email.errors %}
-                            <span class="text-danger error-message">{{ error }}</span>
-                        {% endfor %}
+                        <input type="email" class="form-control" placeholder="Email" aria-label="Email" aria-describedby="email-addon" name="email" >
+                        @if ($errors->has('email'))
+                            @foreach ($errors->get('email') as $error)
+                                <span class="text-danger error-message">{{ $error }}</span>
+                            @endforeach
+                        @endif
                     </div>
                     <div class="mb-3">
-                        <input type="tel" class="form-control" placeholder="Phone Number (+234)" aria-label="Phone Number" aria-describedby="phone_number-addon" name="phone_number" {% if form.phone_number.value %} value="{{ form.phone_number.value }}" {% endif %}>
-                        {% for error in form.phone_number.errors %}
-                            <span class="text-danger error-message">{{ error }}</span>
-                        {% endfor %}
+                        <input type="tel" class="form-control" placeholder="Phone Number (+234)" aria-label="Phone Number" aria-describedby="phone_number-addon" name="phone_number">
+                        @if ($errors->has('phone_number'))
+                            @foreach ($errors->get('phone_number') as $error)
+                                <span class="text-danger error-message">{{ $error }}</span>
+                            @endforeach
+                        @endif
                     </div>
                     <div class="mb-3">
                         <input type="password" class="form-control" placeholder="Password" aria-label="Password" aria-describedby="password-addon" name="password">
-                        {% for error in form.password.errors %}
-                            <span class="text-danger error-message">{{ error }}</span>
-                        {% endfor %}
+                        @if ($errors->has('password'))
+                            @foreach ($errors->get('password') as $error)
+                                <span class="text-danger error-message">{{ $error }}</span>
+                            @endforeach
+                        @endif
                     </div>
                     <div class="mb-3">
                         <input type="password" class="form-control" placeholder="Verify Password" aria-label="Verify Password" aria-describedby="password-addon" name="verify_password">
-                        {% for error in form.verify_password.errors %}
-                            <span class="text-danger error-message">{{ error }}</span>
-                        {% endfor %}
+                        @if ($errors->has('verify_password'))
+                            @foreach ($errors->get('verify_password') as $error)
+                                <span class="text-danger error-message">{{ $error }}</span>
+                            @endforeach
+                        @endif
                     </div>
                   <div class="form-check form-check-info text-left">
                     <input class="form-check-input" type="checkbox" required id="flexCheckDefault" checked>
@@ -97,7 +103,7 @@
                   <div class="text-center">
                     <button type="submit" class="btn bg-gradient-dark w-100 my-4 mb-2">Register</button>
                   </div>
-                  <p class="text-sm mt-3 mb-0">Already have an account? <a href="{% url 'business-login' %}" class="text-dark font-weight-bolder">Log in</a></p>
+                  <p class="text-sm mt-3 mb-0">Already have an account? <a href=" {{ route('business-login') }}" class="text-dark font-weight-bolder">Log in</a></p>
                 </form>
               </div>
             </div>

@@ -12,7 +12,7 @@ class BusinessRegistrationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -24,7 +24,7 @@ class BusinessRegistrationRequest extends FormRequest
     {
         return [
             'business_name' => 'required|string|max:255',
-            'email' => ['required', 'email'],
+            'email' => ['required', 'email', 'unique:user,email'],
             'phone_number' => [
                 'required',
                 'string',

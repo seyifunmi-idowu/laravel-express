@@ -26,9 +26,9 @@ Route::post('/business/verify-email', [BusinessController::class, 'verifyEmail']
 Route::get('/business/register', [BusinessController::class, 'showRegistrationForm'])->name('business-register');
 Route::post('/business/register', [BusinessController::class, 'register']);
 Route::get('/business/resend-otp', [BusinessController::class, 'resendOtp'])->name('business-resend-otp');
-Route::get('/business/dashboard', [BusinessController::class, 'dashboard'])->name('business-dashboard');
-Route::post('/business/logout', [BusinessController::class, 'logout'])->name('business-logout')->middleware('auth');
+Route::get('/business/logout', [BusinessController::class, 'logout'])->name('business-logout')->middleware('web');
 
+Route::get('/business/dashboard', [BusinessController::class, 'dashboard'])->name('business-dashboard')->middleware('web');
 Route::get('business/order', [BusinessController::class, 'order'])->name('business-order');
 Route::get('business/order/{order_id}', [BusinessController::class, 'get_order'])->name('business-view-order');
 

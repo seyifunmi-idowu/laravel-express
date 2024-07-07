@@ -44,7 +44,7 @@ class BusinessController extends Controller
 
     public function showLoginForm()
     {
-        if (Auth::check() && Auth::user()->user_type == "BUSINESS") {
+        if (Auth::guard('web')->check() && Auth::guard('web')->user()->user_type == "BUSINESS") {
             return Redirect::route('business-dashboard');
         }
 
@@ -67,14 +67,18 @@ class BusinessController extends Controller
     public function showVerifyEmailForm(Request $request)
     {
         $email = $request->query('email', '');
-
-        return view('app.verify_email', compact('email'));
+        $error = session('error') ?? null;
+        return view('app.verify_email', compact('email', 'error'));
     }
 
     public function verifyEmail(VerifyEmailRequest $request)
     {
-        // BusinessAuthService::verifyBusinessUserEmail($request->only('email', 'otp'));
-
+        $data = $request->only('email', 'code');
+        $response = $this->businessService->verifyBusinessUserEmail($data);
+        if (!$response){
+            $email = $data['email'];
+            return Redirect::route('business-verify-email', ['email' => $email]);
+        }
         return Redirect::route('business-dashboard');
     }
 
@@ -89,7 +93,7 @@ class BusinessController extends Controller
 
     public function register(BusinessRegistrationRequest $request)
     {
-        // BusinessAuthService::registerBusinessUser($request->all());
+        $this->businessService->registerBusinessUser($request->all());
 
         return Redirect::route('business-verify-email', ['email' => $request->email]);
     }
@@ -97,26 +101,25 @@ class BusinessController extends Controller
     public function resendOtp(Request $request)
     {
         $email = $request->query('email', '');
-        // $user = UserService::getUserInstance($email);
+        $user = $this->userService->getUser("", $email);       
 
-        // if ($user == null) {
-        //     return Redirect::back()->withErrors(['User not found']);
-        // }
-
-        // AuthService::initiateEmailVerification($email, $user->display_name);
+        if ($user == null) {
+            return Redirect::back()->withErrors(['User not found']);
+        }
+        $this->authService->initiateEmailVerification($email);
 
         return Redirect::route('business-verify-email', ['email' => $email]);
     }
 
     public function logout()
     {
-        Auth::logout();
+        Auth::guard('web')->logout();
         return Redirect::route('business-login');
     }
 
     public function dashboard()
     {
-        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $user = Auth::guard('web')->user();
         $response = $this->businessService->getBusinessDashboardView($user);
 
         return view('app.dashboard', ['view' => 'Dashboard'] + $response);
@@ -124,7 +127,7 @@ class BusinessController extends Controller
 
     public function order()
     {
-        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $user = Auth::guard('web')->user();
         $response = $this->businessService->getBusinessOrderView($user);
 
         return view('app.order', ['view' => 'Order'] + $response);
@@ -132,7 +135,7 @@ class BusinessController extends Controller
 
     public function get_order(Request $request, $order_id)
     {
-        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $user = Auth::guard('web')->user();
         $response = $this->businessService->getBusinessGetOrderView($user, $order_id);
 
         return view('app.view_order', ['view' => 'Order'] + $response);
@@ -140,7 +143,7 @@ class BusinessController extends Controller
 
     public function wallet(Request $request)
     {
-        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $user = Auth::guard('web')->user();
         $response = $this->businessService->getBusinessWalletView($user);
         $transactions = collect($response['transactions']);
         unset($response['transactions']);
@@ -168,7 +171,7 @@ class BusinessController extends Controller
             return Redirect::route('business-wallet');
         }
 
-        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $user = Auth::guard('web')->user();
 
         if ($request->isMethod('post')) {
             $callbackUrl = URL::route('business-verify-card-transaction');
@@ -195,7 +198,7 @@ class BusinessController extends Controller
 
     public function deleteCard(Request $request, $card_id)
     {
-        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $user = Auth::guard('web')->user();
         $card = $this->walletService->getUserCards($user);
 
         if (!$card) {
@@ -206,7 +209,7 @@ class BusinessController extends Controller
     }
     public function settings(Request $request)
     {
-        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $user = Auth::guard('web')->user();
         $response = $this->businessService->getBusinessSettingsView($user);    
         $error = session('error') ?? null;    
 
@@ -227,7 +230,7 @@ class BusinessController extends Controller
             return Redirect::route('business-settings')->with('error', $error);
         }
 
-        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $user = Auth::guard('web')->user();
         $business = $this->businessService->getBusiness($user);
         $business->webhook_url = $request->webhook_url;
         $business->save();
@@ -236,7 +239,7 @@ class BusinessController extends Controller
 
     public function regenerateSecretKey(Request $request)
     {
-        $user = $this->userService->getUser("", 'chowdeck@gmail.com');       
+        $user = Auth::guard('web')->user();
         $this->businessService->generateBusinessSecretKey($user);
         return Redirect::route('business-settings');
     }
@@ -245,7 +248,5 @@ class BusinessController extends Controller
     {
         return view('app.docs', ["base_url"=> "api.feleexpress.com"]);
     }
-
-
 
 }

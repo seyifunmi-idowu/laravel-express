@@ -20,7 +20,7 @@ use App\Models\Card;
 use App\Models\BankAccount;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
-use Tymon\JWTAuth\Facades\JWTAuth;
+use Laravel\Passport\Token;
 
 class BusinessService
 {
@@ -75,7 +75,7 @@ class BusinessService
     {    
         $business = $this->getBusiness($user);
         // Auth::logout($this->getBusinessUserSecretKey($user));
-        JWTAuth::invalidate($this->getBusinessUserSecretKey($user));
+
         $token = Auth::login($user);
         $encryptedToken = EncryptionClass::encryptData($token);
         $business->e_secret_key = $encryptedToken;
@@ -134,23 +134,23 @@ class BusinessService
         return true;
     }
 
-    public static function verifyBusinessUserEmail($request, array $data)
+    public function verifyBusinessUserEmail(array $data)
     {
-        $user = UserService::getUserInstance(['email' => $data['email']]);
+        $user = $this->userService->getUser("", $data['email']);
         if (!$user) {
             Session::flash('error', 'User not found.');
-            return;
+            return false;
         }
 
         try {
-            AuthService::validateEmailVerification($data['email'], $data['code']);
-            Auth::login($user);
+            $this->authService->verifyEmailVerification($data['email'], $data['code']);
+            Auth::guard('web')->login($user);
             $user->last_login = now();
             $user->save();
+            return true;
         } catch (CustomAPIException $e) {
             Session::flash('error', $e->getMessage());
-        } catch (CustomFieldValidationException $e) {
-            Session::flash('error', $e->getErrors()['code'][0]);
+            return false;
         }
     }
 
