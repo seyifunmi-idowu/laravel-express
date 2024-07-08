@@ -50,7 +50,7 @@ class CustomerController extends Controller
     {
         try{
             $request->validate([
-                'code' => 'required|string|max:6',
+                'code' => 'required|max:6',
                 'email' => 'sometimes|required_without:phone_number|email',
                 'phone_number' => 'sometimes|required_without:email|string|min:10|max:15',
             ]);
