@@ -22,17 +22,13 @@ class UserWidgets extends BaseWidget
         $thisMonthOrders = Order::whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count();
 
         $thisMonthOrders = Order::whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count();
-        $completedOrders = Order::whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
-                                ->where('status', 'ORDER_COMPLETED')
+        $completedOrders = Order::where('status', 'ORDER_COMPLETED')
                                 ->count();
-        $ongoingOrders = Order::whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
-                              ->whereNotIn('status', ['ORDER_COMPLETED', 'ORDER_CANCELLED', 'ORDER_DELIVERED'])
+        $ongoingOrders = Order::whereNotIn('status', ['ORDER_COMPLETED', 'ORDER_CANCELLED', 'ORDER_DELIVERED'])
                               ->count();
-        $pendingOrders = Order::whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
-                              ->where('status', 'PENDING')
+        $pendingOrders = Order::where('status', 'PENDING')
                               ->count();
-        $cancelledOrders = Order::whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
-                                ->where('status', 'ORDER_CANCELLED')
+        $cancelledOrders = Order::where('status', 'ORDER_CANCELLED')
                                 ->count();
 
 
