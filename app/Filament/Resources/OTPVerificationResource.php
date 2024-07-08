@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\OTPVerificationResource\Pages;
 use App\Filament\Resources\OTPVerificationResource\RelationManagers;
-use App\Models\OTPVerification;
+use App\Models\OtpVerification;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class OTPVerificationResource extends Resource
 {
-    protected static ?string $model = OTPVerification::class;
+    protected static ?string $model = OtpVerification::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 

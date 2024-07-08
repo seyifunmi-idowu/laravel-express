@@ -119,6 +119,9 @@ class BusinessController extends Controller
 
     public function dashboard()
     {
+        if (!Auth::guard('web')->check() || Auth::guard('web')->user()->user_type != "BUSINESS") {
+            return Redirect::route('business-login');
+        }
         $user = Auth::guard('web')->user();
         $response = $this->businessService->getBusinessDashboardView($user);
 
@@ -127,6 +130,9 @@ class BusinessController extends Controller
 
     public function order()
     {
+        if (!Auth::guard('web')->check() || Auth::guard('web')->user()->user_type != "BUSINESS") {
+            return Redirect::route('business-login');
+        }
         $user = Auth::guard('web')->user();
         $response = $this->businessService->getBusinessOrderView($user);
 
@@ -135,6 +141,10 @@ class BusinessController extends Controller
 
     public function get_order(Request $request, $order_id)
     {
+        if (!Auth::guard('web')->check() || Auth::guard('web')->user()->user_type != "BUSINESS") {
+            return Redirect::route('business-login');
+        }
+
         $user = Auth::guard('web')->user();
         $response = $this->businessService->getBusinessGetOrderView($user, $order_id);
 
@@ -143,6 +153,10 @@ class BusinessController extends Controller
 
     public function wallet(Request $request)
     {
+        if (!Auth::guard('web')->check() || Auth::guard('web')->user()->user_type != "BUSINESS") {
+            return Redirect::route('business-login');
+        }
+
         $user = Auth::guard('web')->user();
         $response = $this->businessService->getBusinessWalletView($user);
         $transactions = collect($response['transactions']);
@@ -198,6 +212,10 @@ class BusinessController extends Controller
 
     public function deleteCard(Request $request, $card_id)
     {
+        if (!Auth::guard('web')->check() || Auth::guard('web')->user()->user_type != "BUSINESS") {
+            return Redirect::route('business-login');
+        }
+
         $user = Auth::guard('web')->user();
         $card = $this->walletService->getUserCards($user);
 
@@ -209,6 +227,10 @@ class BusinessController extends Controller
     }
     public function settings(Request $request)
     {
+        if (!Auth::guard('web')->check() || Auth::guard('web')->user()->user_type != "BUSINESS") {
+            return Redirect::route('business-login');
+        }
+
         $user = Auth::guard('web')->user();
         $response = $this->businessService->getBusinessSettingsView($user);    
         $error = session('error') ?? null;    
@@ -218,6 +240,10 @@ class BusinessController extends Controller
 
     public function updateWebhook(Request $request)
     {
+        if (!Auth::guard('web')->check() || Auth::guard('web')->user()->user_type != "BUSINESS") {
+            return Redirect::route('business-login');
+        }
+
         $error = null;
         try{
             $request->validate([
@@ -239,6 +265,10 @@ class BusinessController extends Controller
 
     public function regenerateSecretKey(Request $request)
     {
+        if (!Auth::guard('web')->check() || Auth::guard('web')->user()->user_type != "BUSINESS") {
+            return Redirect::route('business-login');
+        }
+
         $user = Auth::guard('web')->user();
         $this->businessService->generateBusinessSecretKey($user);
         return Redirect::route('business-settings');

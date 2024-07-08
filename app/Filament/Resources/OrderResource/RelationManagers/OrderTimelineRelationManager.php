@@ -9,6 +9,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Models\OrderTimeline;
+use Illuminate\Support\HtmlString;
 
 class OrderTimelineRelationManager extends RelationManager
 {
@@ -18,12 +20,14 @@ class OrderTimelineRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('status')
+                Forms\Components\TextInput::make('image')
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('proof_url')
-                    ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->disabled(),
+
+                Forms\Components\Placeholder::make('Proof')
+                ->content(fn (OrderTimeline $record)=> $record && $record->proof_url ? new HtmlString("<img src='{$record->proof_url}'>") : 'No proof available'),
+
             ]);
     }
 
@@ -52,4 +56,24 @@ class OrderTimelineRelationManager extends RelationManager
                 ]),
             ]);
     }
+
+        // Define the schema for the show view
+        public static function getDetailsSchema(): array
+        {
+            return [
+                Forms\Components\TextInput::make('status')
+                    ->required()
+                    ->maxLength(255),
+                // Forms\Components\Image::make('proof_url')
+                //     ->required(),
+                Forms\Components\TextInput::make('created_at')
+                    ->disabled(),
+            ];
+        }
+    
+        public function getTableDetailViewSchema(): array
+        {
+            return self::getDetailsSchema();
+        }
+    
 }

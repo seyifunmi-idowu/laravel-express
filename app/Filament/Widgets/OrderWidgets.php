@@ -15,7 +15,7 @@ class OrderWidgets extends BaseWidget
     public function table(Table $table): Table
     {
         return $table
-        ->query(Order::query())
+        ->query(Order::query()->orderBy("created_at", 'DESC'))
         ->columns([
             Tables\Columns\TextColumn::make('order_id')->label('Order ID'),
             Tables\Columns\TextColumn::make('status')->label('Status')->color(fn (string $state): string => match ($state) {

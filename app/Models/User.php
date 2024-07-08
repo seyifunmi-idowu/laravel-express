@@ -94,6 +94,12 @@ class User extends Authenticatable implements JWTSubject, FilamentUser, HasName
         return "{$this->first_name} {$this->last_name}";
     }
 
+    public function getFilamentAvatarUrl(): ?string
+    {
+        return $this->avatar_url;
+    }
+
+
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->is_superuser ?? $this->is_staff;

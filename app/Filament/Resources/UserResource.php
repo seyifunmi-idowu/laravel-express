@@ -16,6 +16,7 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\FileUpload;
 use App\Filament\Tables\Actions\SendMessageBulkAction;
+use Illuminate\Support\HtmlString;
 
 class UserResource extends Resource
 {
@@ -27,6 +28,9 @@ class UserResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Placeholder::make('Avatar')
+                    ->content(fn (User $record)=> $record && $record->avatar_url ? new HtmlString("<img src='{$record->avatar_url}' width='200' height='200'>") : 'No avatar available')
+                    ->columnSpanFull(),
                 Forms\Components\TextInput::make('first_name')
                     ->required()
                     ->label('First name'),
@@ -37,6 +41,7 @@ class UserResource extends Resource
                     ->email()
                     ->required()
                     ->label('Email'),
+    
                 // Forms\Components\TextInput::make('password')
                 //     ->password()
                 //     ->required()
@@ -51,7 +56,7 @@ class UserResource extends Resource
                 Forms\Components\TextInput::make('avatar_url'), 
                 Forms\Components\Placeholder::make('wallet_balance')
                     ->label('Wallet balance')
-                    ->content(fn ($record) => $record->wallet->balance)
+                    ->content(fn ($record) => $record->wallet ? $record->wallet->balance : 0)
                     ->columnSpanFull(),
                 Forms\Components\Toggle::make('email_verified')
                     ->label('Email Verification Status')
