@@ -20,7 +20,7 @@ class OrderTimelineRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('image')
+                Forms\Components\TextInput::make('status')
                     ->required()
                     ->maxLength(255)
                     ->disabled(),
